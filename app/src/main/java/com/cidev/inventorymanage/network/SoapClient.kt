@@ -19,26 +19,28 @@ import java.util.concurrent.TimeUnit
  * is simple enough not to need a library at all.
  *
  * IMPORTANT / TODO before this runs against the real server:
- * 1. NAMESPACE and SERVICE_URL are best-effort guesses reconstructed from
- *    the decompiled binary + the confirmed IIS virtual directory name
- *    ("InventoryManage") — see docs/API_MAP.md for the full reasoning.
- *    Please confirm by browsing directly to the .asmx URL.
- * 2. Parameter names for each SOAP method are inferred from the matching
- *    field names in the decompiled data classes (User, Product, etc).
- *    If a call fails with a SOAP fault about an unrecognized parameter,
- *    that's the most likely fix.
+ * 1. SERVICE_URL is CONFIRMED (2026-07) — browsing directly to
+ *    http://192.168.0.22/InventoryManage/Service.asmx from a phone on the
+ *    warehouse Wi-Fi showed the auto-generated service description page
+ *    listing all 64 methods, matching exactly what was extracted from the
+ *    decompiled exe.
+ * 2. Parameter names for each SOAP method are still inferred from the
+ *    matching field names in the decompiled data classes (User, Product,
+ *    etc) — NOT yet confirmed against the live server. If a call fails
+ *    with a SOAP fault about an unrecognized parameter, that's the most
+ *    likely fix.
  */
 object SoapClient {
 
     private const val NAMESPACE = "http://tempuri.org/"
-    private var serviceUrl: String = "http://192.168.0.22/InventoryManage/InvManageWebService/Service.asmx"
+    private var serviceUrl: String = "http://192.168.0.22/InventoryManage/Service.asmx"
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    fun configureServer(ip: String, path: String = "/InventoryManage/InvManageWebService/Service.asmx") {
+    fun configureServer(ip: String, path: String = "/InventoryManage/Service.asmx") {
         serviceUrl = "http://$ip$path"
     }
 

@@ -10,16 +10,11 @@ This is the working checklist for the port. Update the ✅/⬜ as modules land.
 - Communication is **SOAP 1.1**, `.NET`-style envelope, namespace
   `http://tempuri.org/` (default namespace — no custom `[WebService(Namespace=...)]`
   attribute found).
-- **Still unconfirmed, but narrowed down.** `MainMenu.aspx` (the browser
-  admin/reports site on the same server) lives at
-  `http://192.168.0.22/InventoryManage/MainMenu.aspx`, confirming the IIS
-  virtual directory is `InventoryManage`. Combined with the C# namespace
-  seen in the exe (`InventoryManage.InvManageWebService.Service`), the best
-  current guess — now set in `SoapClient.kt` — is:
-  `http://192.168.0.22/InventoryManage/InvManageWebService/Service.asmx`
-  → **Action needed:** browse directly to that URL (a working `.asmx` page
-  shows an auto-generated "click here to test" page listing all the SOAP
-  methods) to confirm before relying on it.
+- **CONFIRMED (2026-07).** Browsing directly to
+  `http://192.168.0.22/InventoryManage/Service.asmx` from a phone on the
+  warehouse Wi-Fi showed the auto-generated ASMX service description page,
+  listing all 64 methods below — exact match with what was extracted from
+  the decompiled exe. `SoapClient.kt` now uses this path by default.
 - Bonus finding: there's a whole separate browser-based admin/reports site
   at `/InventoryManage/*.aspx` (stock locations, inventory count reports,
   packaging/distribution reports, a "distribution" module that redirects to

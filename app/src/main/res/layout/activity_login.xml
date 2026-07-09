@@ -84,6 +84,7 @@
         android:layout_marginTop="12dp"
         android:textColor="#FF6B6B"
         android:textAlignment="center"
+        android:textIsSelectable="true"
         android:visibility="gone"/>
 
 </LinearLayout>
