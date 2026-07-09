@@ -3,8 +3,8 @@ package com.cidev.inventorymanage.data.model
 /**
  * Mirrors InventoryManage.InvManageWebService.User from the legacy exe.
  * These *IsXxxActive flags are what the server uses to turn warehouse
- * modules on/off per user — the Android main menu should be built
- * dynamically from these, exactly like the original FrmMain does.
+ * modules on/off per user — the Android main menu is built dynamically
+ * from these, exactly like the original FrmMain does.
  */
 data class User(
     var loginName: String = "",
@@ -17,7 +17,6 @@ data class User(
     var responseMessage: String = "",
     var responseID: Int = 0,
 
-    // ---- Module toggles (drive the main menu) ----
     var isOrderActive: Boolean = false,
     var isTransactionActive: Boolean = false,
     var isInventoryCountActive: Boolean = false,
@@ -32,7 +31,6 @@ data class User(
     var isInvGeneralEntryActive: Boolean = false,
     var isInvGeneralExitActive: Boolean = false,
 
-    // ---- Pick & Pack behaviour flags ----
     var isHandleStorageLocation: Boolean = false,
     var isPickPackCanCreateDeliveryNote: Boolean = false,
     var isPickPackCanCreateInvoice: Boolean = false,
@@ -48,7 +46,6 @@ data class User(
     var isPackMustEnterSurface: Boolean = false,
     var isPackQuantityCanBeMoreThanPick: Boolean = false,
 
-    // ---- Defaults ----
     var defaultWarehouseCode: String = "",
     var defaultReturnPurchaseWarehouseCode: String = "",
     var defaultReturnFromClientWarehouseCode: String = "",
@@ -58,19 +55,16 @@ data class User(
     var defaultProductQuantity: Double = 0.0,
     var productionWarehouseID: String = "",
 
-    // ---- Search / scanning behaviour ----
     var isSearchAccountBarcodeActive: Boolean = false,
     var isSearchProductBarcodeActive: Boolean = false,
     var isStockEntrySearchOnlyBySupplyer: Boolean = false,
     var isRequiredScanProductForDocuments: Boolean = false,
 
-    // ---- Inventory count behaviour ----
     var isInvCountLoadsQuantity: Boolean = false,
     var isInvCountMandatoryToFillAllLocations: Boolean = false,
     var isInvCountAutoShowSearchProductScreen: Boolean = false,
     var isInvCountCanSetDefaultLocation: Boolean = false,
 
-    // ---- Inventory entry behaviour ----
     var isInvEntryCanCreateDraft: Boolean = false,
     var isInvEntryCanSelectReserveInvoice: Boolean = false,
     var isInvEntrySelectDefaultReserveInvoice: Boolean = false,

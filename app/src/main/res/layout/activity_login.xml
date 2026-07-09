@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -8,7 +9,6 @@
     android:background="#1B2530">
 
     <TextView
-        android:id="@+id/txtTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="InventoryManage"
@@ -28,19 +28,6 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:hint="כתובת שרת (IP)">
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/edtServerIp"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="192.168.0.22"
-            android:inputType="text"/>
-    </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:hint="שם משתמש">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edtUsername"
@@ -52,9 +39,8 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="סיסמה (לא בשימוש כרגע)"
-        app:passwordToggleEnabled="true"
-        xmlns:app="http://schemas.android.com/apk/res-auto">
+        android:hint="סיסמה"
+        app:passwordToggleEnabled="true">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edtPassword"
             android:layout_width="match_parent"
@@ -84,7 +70,6 @@
         android:layout_marginTop="12dp"
         android:textColor="#FF6B6B"
         android:textAlignment="center"
-        android:textIsSelectable="true"
         android:visibility="gone"/>
 
 </LinearLayout>

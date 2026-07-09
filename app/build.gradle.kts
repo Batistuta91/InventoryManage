@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId = "com.cidev.inventorymanage"
-        minSdk = 24          // Android 7+ covers virtually all modern rugged handhelds
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0-scaffold"
@@ -43,14 +43,15 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // SOAP client — hand-rolled (see network/SoapClient.kt) using plain XML
-    // + OkHttp instead of the ksoap2-android library. ksoap2's transitive
-    // dependencies (kxml, kobjects-j2me, me4se) are dead 2004-era libraries
-    // that no longer exist on any reachable Maven repository — not worth
-    // fighting. A raw SOAP 1.1 POST + XML parse is simple enough to own
-    // directly, and Android ships an XmlPullParser (android.util.Xml)
-    // out of the box so we don't need an XML library either.
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    // SOAP client — talks to the existing InvManageWebService (Service.asmx)
+    // exactly like the legacy Windows Mobile app does. No server changes needed.
+    //
+    // NOTE: com.google.code.ksoap2-android:ksoap2-android:3.6.4 (the
+    // "official" coordinates) only live on an old Sonatype OSSRH repo that
+    // isn't mirrored to Maven Central — Gradle can't resolve it from there,
+    // which is what broke the first Codemagic build attempt. Using an
+    // actively-mirrored JitPack fork instead: same library, same API.
+    implementation("com.github.kekru:ksoap2-android:v3.6.2-useragentfix")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   The legacy InvManageWebService runs over plain HTTP on the internal
-  warehouse LAN (see ServiceIP.txt -> 192.168.0.22). Android 9+ blocks
-  cleartext HTTP by default, so we explicitly allow it for this one host.
-  If the server is ever moved behind HTTPS, this file should be deleted
-  and the networkSecurityConfig attribute removed from the manifest.
+  warehouse LAN (192.168.0.22). Android 9+ blocks cleartext HTTP by
+  default, so we explicitly allow it for this one host. Delete this file
+  and the manifest reference if the server is ever moved behind HTTPS.
 -->
 <network-security-config>
     <domain-config cleartextTrafficPermitted="true">

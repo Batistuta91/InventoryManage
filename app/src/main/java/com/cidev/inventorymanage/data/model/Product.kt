@@ -1,6 +1,5 @@
 package com.cidev.inventorymanage.data.model
 
-/** Mirrors InventoryManage.InvManageWebService.Product */
 data class Product(
     var prodID: String = "",
     var prodBarcode: String = "",
@@ -29,7 +28,6 @@ data class Product(
     var responseMessage: String = ""
 )
 
-/** Mirrors InventoryManage.InvManageWebService.Response */
 data class ApiResponse(
     var responseID: Int = 0,
     var status: ResponseStatus = ResponseStatus.FAILURE,

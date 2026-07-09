@@ -22,33 +22,25 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Remember the last IP the person typed, default to the one from
-        // ServiceIP.txt (192.168.0.22) on first launch.
-        val prefs = getSharedPreferences("inventory_manage_prefs", MODE_PRIVATE)
-        binding.edtServerIp.setText(prefs.getString("server_ip", "192.168.0.22"))
+        // TODO: read the real WMS IP from a settings screen instead of
+        // hardcoding — for now this matches ServiceIP.txt (192.168.0.22).
+        SoapClient.configureServer("192.168.0.22")
 
         binding.btnLogin.setOnClickListener { attemptLogin() }
     }
 
     private fun attemptLogin() {
-        val serverIp = binding.edtServerIp.text?.toString()?.trim().orEmpty()
-        if (serverIp.isEmpty()) {
-            showError("נא למלא כתובת שרת (IP)")
-            return
-        }
-        getSharedPreferences("inventory_manage_prefs", MODE_PRIVATE)
-            .edit().putString("server_ip", serverIp).apply()
-        SoapClient.configureServer(serverIp)
-
         val username = binding.edtUsername.text?.toString()?.trim().orEmpty()
         val password = binding.edtPassword.text?.toString().orEmpty()
 
-        if (username.isEmpty()) {
-            showError("נא למלא שם משתמש")
+        if (username.isEmpty() || password.isEmpty()) {
+            showError("נא למלא שם משתמש וסיסמה")
             return
         }
 
         setLoading(true)
+        // NOTE: must be a STABLE id across app launches, since the server
+        // binds each login to one device (see docs/API_MAP.md).
         val deviceId = Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID)
 
         lifecycleScope.launch {
@@ -61,8 +53,7 @@ class LoginActivity : AppCompatActivity() {
                     startActivity(Intent(this@LoginActivity, MainMenuActivity::class.java))
                     finish()
                 } else {
-                    val detail = "status=${user.responseStatus} message=${user.responseMessage} sessionID=${user.sessionID}"
-                    showError("פרטי התחברות שגויים\n$detail")
+                    showError(user.responseMessage.ifBlank { "פרטי התחברות שגויים" })
                 }
             }.onFailure { e ->
                 showError("שגיאת תקשורת עם השרת: ${e.message}")

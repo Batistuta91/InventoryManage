@@ -8,10 +8,7 @@ class ProductRepository {
 
     /**
      * Wraps the legacy SearchProduct SOAP method. NOT yet tested against
-     * the live server. Search results in the original app come back as a
-     * vector/array of Product objects — ksoap2 exposes repeated elements
-     * as SoapObject children under the same property name, hence the loop
-     * below.
+     * the live server.
      */
     suspend fun searchProduct(sessionId: String, term: String): Result<List<Product>> {
         return try {

@@ -10,16 +10,6 @@ import com.cidev.inventorymanage.databinding.ActivityMainMenuBinding
 import com.cidev.inventorymanage.databinding.ItemMenuBinding
 import com.cidev.inventorymanage.ui.search.ProductSearchActivity
 
-/**
- * Mirrors the legacy FrmMain: the menu shown to the warehouse worker is
- * built from the User.IsXxxActive flags returned at login, not hardcoded.
- * Each entry maps to one of the 46 forms found in the original binary
- * (see /docs/API_MAP.md for the full module -> screen -> SOAP-methods map).
- *
- * Only "חיפוש מוצר" (Product Search) is wired to a real screen so far —
- * everything else is a placeholder Activity ready to be filled in module
- * by module.
- */
 class MainMenuActivity : AppCompatActivity() {
 
     companion object {
@@ -46,7 +36,6 @@ class MainMenuActivity : AppCompatActivity() {
         if (user == null) return emptyList()
         val items = mutableListOf<MenuEntry>()
 
-        // Always available
         items += MenuEntry("חיפוש מוצר") {
             startActivity(Intent(this, ProductSearchActivity::class.java))
         }
@@ -69,8 +58,7 @@ class MainMenuActivity : AppCompatActivity() {
     }
 
     private fun placeholder(label: String) = MenuEntry(label) {
-        // TODO: replace with the real screen — see API_MAP.md for the
-        // relevant SOAP methods and the legacy Form this maps to.
+        // TODO: replace with the real screen — see docs/API_MAP.md.
     }
 
     private inner class MenuAdapter(private val items: List<MenuEntry>) :

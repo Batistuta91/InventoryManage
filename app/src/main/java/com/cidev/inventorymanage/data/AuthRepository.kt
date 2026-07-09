@@ -6,16 +6,13 @@ import org.ksoap2.serialization.SoapObject
 
 /**
  * Wraps the CheckUserLogin2 SOAP call (chosen over CheckUserLogin because
- * the "2" suffix pattern in the legacy code base — see also
- * GetTempDocPickPack vs no-suffix variants — is consistently the newer,
- * fuller version that returns all the permission flags in one round trip).
+ * the "2" suffix pattern in the legacy code base is consistently the
+ * newer, fuller version that returns all the permission flags in one
+ * round trip).
  *
  * NOT YET TESTED against the live server. Parameter names below
  * (loginName, password, deviceID) are a first guess based on the matching
- * field names found in the decompiled User class — if the real call fails
- * with a SOAP fault about an unrecognized parameter, or comes back with
- * isValid=false on known-good credentials, that's the first thing to
- * check and adjust.
+ * field names found in the decompiled User class.
  */
 class AuthRepository {
 
