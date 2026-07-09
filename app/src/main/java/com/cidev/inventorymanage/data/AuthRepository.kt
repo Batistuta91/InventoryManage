@@ -2,39 +2,39 @@ package com.cidev.inventorymanage.data
 
 import com.cidev.inventorymanage.data.model.User
 import com.cidev.inventorymanage.network.SoapClient
-import com.cidev.inventorymanage.network.XmlNode
+import org.ksoap2.serialization.SoapObject
 
 /**
  * Wraps the CheckUserLogin2 SOAP call (chosen over CheckUserLogin because
- * the "2" suffix pattern in the legacy code base is consistently the
- * newer, fuller version that returns all the permission flags in one
- * round trip).
+ * the "2" suffix pattern in the legacy code base — see also
+ * GetTempDocPickPack vs no-suffix variants — is consistently the newer,
+ * fuller version that returns all the permission flags in one round trip).
  *
- * CONFIRMED (2026-07) from a live SOAP fault: the server signature is
- * `CheckUserLogin2(ref User user)` — a single complex `User` parameter,
- * not flat scalar arguments. Field names inside <user> are still inferred
- * from the User model (not yet confirmed one-by-one) — if the server
- * still errors, the next most likely fix is a field name/order mismatch
- * inside the <user> element.
+ * NOT YET TESTED against the live server. Parameter names below
+ * (loginName, password, deviceID) are a first guess based on the matching
+ * field names found in the decompiled User class — if the real call fails
+ * with a SOAP fault about an unrecognized parameter, or comes back with
+ * isValid=false on known-good credentials, that's the first thing to
+ * check and adjust.
  */
 class AuthRepository {
 
     suspend fun login(loginName: String, password: String, deviceId: String): Result<User> {
         return try {
-            val userFields = linkedMapOf<String, String?>(
+            val params = linkedMapOf<String, Any?>(
                 "loginName" to loginName,
                 "password" to password,
                 "deviceID" to deviceId
             )
-            val result: XmlNode = SoapClient.callComplex("CheckUserLogin2", "user", userFields)
-            Result.success(mapToUser(result))
+            val soapResult: SoapObject = SoapClient.call("CheckUserLogin2", params)
+            Result.success(mapToUser(soapResult))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private fun mapToUser(node: XmlNode): User {
-        fun str(name: String) = node.childText(name)
+    private fun mapToUser(soap: SoapObject): User {
+        fun str(name: String) = runCatching { soap.getPropertyAsString(name) }.getOrDefault("")
         fun bool(name: String) = str(name).equals("true", ignoreCase = true)
 
         return User(

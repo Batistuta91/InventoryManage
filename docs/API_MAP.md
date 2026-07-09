@@ -10,11 +10,20 @@ This is the working checklist for the port. Update the ✅/⬜ as modules land.
 - Communication is **SOAP 1.1**, `.NET`-style envelope, namespace
   `http://tempuri.org/` (default namespace — no custom `[WebService(Namespace=...)]`
   attribute found).
-- **CONFIRMED (2026-07).** Browsing directly to
-  `http://192.168.0.22/InventoryManage/Service.asmx` from a phone on the
-  warehouse Wi-Fi showed the auto-generated ASMX service description page,
-  listing all 64 methods below — exact match with what was extracted from
-  the decompiled exe. `SoapClient.kt` now uses this path by default.
+- **Verified:** the IIS virtual directory is named `InventoryManage` —
+  confirmed from the admin site's page source (`WebResource.axd` loads from
+  `/InventoryManage/`). The exact `.asmx` filename (`Service.asmx`) is
+  still an assumption, not yet confirmed by actually browsing to it.
+- **Verified:** device binding is real. The admin site
+  (`UsersHandle.aspx`) has a grid mapping each login (m1, m2, y1, y2...) to
+  a device GUID, with a "ResetDevices" admin action to unbind a device.
+  Format matches the GUIDs seen in `AmLaunchLog.txt`. This means the
+  Android app's `deviceID` must be stable across launches, and a new
+  device will need an admin to "reset" the previous device binding.
+- **Not yet verified:** exact SOAP parameter names/shapes for any of the
+  64 methods below — no live SOAP call has actually been made in this
+  project yet. `SoapClient.kt` currently guesses reasonable parameter
+  names based on the matching field names in the decompiled data classes.
 - Bonus finding: there's a whole separate browser-based admin/reports site
   at `/InventoryManage/*.aspx` (stock locations, inventory count reports,
   packaging/distribution reports, a "distribution" module that redirects to

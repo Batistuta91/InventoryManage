@@ -61,7 +61,8 @@ class LoginActivity : AppCompatActivity() {
                     startActivity(Intent(this@LoginActivity, MainMenuActivity::class.java))
                     finish()
                 } else {
-                    showError(user.responseMessage.ifBlank { "פרטי התחברות שגויים" })
+                    val detail = "status=${user.responseStatus} message=${user.responseMessage} sessionID=${user.sessionID}"
+                    showError("פרטי התחברות שגויים\n$detail")
                 }
             }.onFailure { e ->
                 showError("שגיאת תקשורת עם השרת: ${e.message}")

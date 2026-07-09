@@ -2,53 +2,49 @@ package com.cidev.inventorymanage.data
 
 import com.cidev.inventorymanage.data.model.Product
 import com.cidev.inventorymanage.network.SoapClient
-import com.cidev.inventorymanage.network.XmlNode
+import org.ksoap2.serialization.SoapObject
 
 class ProductRepository {
 
     /**
-     * Wraps the legacy SearchProduct SOAP method. Results come back as a
-     * repeated element under the result node — each match becomes one
-     * child XmlNode, which mapProducts() turns into a Product.
-     *
-     * NOTE: CheckUserLogin2 turned out to take a single complex `User`
-     * parameter rather than flat scalars (see AuthRepository) — it's
-     * plausible SearchProduct follows the same pattern (e.g. takes a
-     * `Product` object with prodBarcode/sessionID-like fields set). Left
-     * as flat params for now since it's untested; if this throws a
-     * NullReferenceException-style SOAP fault, switch to
-     * `SoapClient.callComplex("SearchProduct", "product", ...)` the same
-     * way AuthRepository does.
+     * Wraps the legacy SearchProduct SOAP method. NOT yet tested against
+     * the live server. Search results in the original app come back as a
+     * vector/array of Product objects — ksoap2 exposes repeated elements
+     * as SoapObject children under the same property name, hence the loop
+     * below.
      */
     suspend fun searchProduct(sessionId: String, term: String): Result<List<Product>> {
         return try {
-            val params = linkedMapOf<String, String?>(
+            val params = linkedMapOf<String, Any?>(
                 "sessionID" to sessionId,
                 "searchTerm" to term
             )
-            val result: XmlNode = SoapClient.call("SearchProduct", params)
-            Result.success(mapProducts(result))
+            val soapResult: SoapObject = SoapClient.call("SearchProduct", params)
+            Result.success(mapProducts(soapResult))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
-    private fun mapProducts(root: XmlNode): List<Product> {
-        // Individual product nodes are usually named "Product" under a
-        // wrapping array/list element — fall back to direct children if
-        // the server doesn't wrap them.
-        val productNodes = root.childrenNamed("Product").ifEmpty { root.children }
-
-        return productNodes.map { prop ->
-            Product(
-                prodID = prop.childText("prodID"),
-                prodBarcode = prop.childText("prodBarcode"),
-                mfrCatalogNum = prop.childText("mfrCatalogNum"),
-                prodDescription = prop.childText("prodDescription"),
-                prodUnit = prop.childText("prodUnit"),
-                prodStorageQuantity = prop.childText("prodStorageQuantity").toDoubleOrNull() ?: 0.0,
-                defaultLocation = prop.childText("defaultLocation")
-            )
+    private fun mapProducts(root: SoapObject): List<Product> {
+        val results = mutableListOf<Product>()
+        for (i in 0 until root.propertyCount) {
+            val prop = root.getProperty(i)
+            if (prop is SoapObject) {
+                results += Product(
+                    prodID = str(prop, "prodID"),
+                    prodBarcode = str(prop, "prodBarcode"),
+                    mfrCatalogNum = str(prop, "mfrCatalogNum"),
+                    prodDescription = str(prop, "prodDescription"),
+                    prodUnit = str(prop, "prodUnit"),
+                    prodStorageQuantity = str(prop, "prodStorageQuantity").toDoubleOrNull() ?: 0.0,
+                    defaultLocation = str(prop, "defaultLocation")
+                )
+            }
         }
+        return results
     }
+
+    private fun str(obj: SoapObject, name: String) =
+        runCatching { obj.getPropertyAsString(name) }.getOrDefault("")
 }
