@@ -45,7 +45,13 @@ dependencies {
 
     // SOAP client — talks to the existing InvManageWebService (Service.asmx) exactly
     // like the legacy Windows Mobile app does. No server changes needed.
-    implementation("com.google.code.ksoap2-android:ksoap2-android:3.6.4")
+    //
+    // NOTE: the "official" com.google.code.ksoap2-android:ksoap2-android:3.6.4
+    // coordinate is NOT on Maven Central — it only ever lived on a legacy
+    // Sonatype OSSRH repo that's no longer reliable. Using a maintained
+    // fork published via JitPack instead (JitPack repo is already declared
+    // in settings.gradle.kts).
+    implementation("com.github.kekru:ksoap2-android:v3.6.2-useragentfix")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
