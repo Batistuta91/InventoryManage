@@ -10,6 +10,15 @@ class ProductRepository {
      * Wraps the legacy SearchProduct SOAP method. Results come back as a
      * repeated element under the result node — each match becomes one
      * child XmlNode, which mapProducts() turns into a Product.
+     *
+     * NOTE: CheckUserLogin2 turned out to take a single complex `User`
+     * parameter rather than flat scalars (see AuthRepository) — it's
+     * plausible SearchProduct follows the same pattern (e.g. takes a
+     * `Product` object with prodBarcode/sessionID-like fields set). Left
+     * as flat params for now since it's untested; if this throws a
+     * NullReferenceException-style SOAP fault, switch to
+     * `SoapClient.callComplex("SearchProduct", "product", ...)` the same
+     * way AuthRepository does.
      */
     suspend fun searchProduct(sessionId: String, term: String): Result<List<Product>> {
         return try {

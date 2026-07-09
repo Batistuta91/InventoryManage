@@ -10,22 +10,23 @@ import com.cidev.inventorymanage.network.XmlNode
  * newer, fuller version that returns all the permission flags in one
  * round trip).
  *
- * Parameter names below (loginName, password, deviceID) are inferred from
- * the User model's fields, since the server needs the exact parameter
- * names it expects. If the login call fails with a SOAP fault about
- * unknown parameters, the fix is almost always just renaming these keys —
- * the actual business logic doesn't change.
+ * CONFIRMED (2026-07) from a live SOAP fault: the server signature is
+ * `CheckUserLogin2(ref User user)` — a single complex `User` parameter,
+ * not flat scalar arguments. Field names inside <user> are still inferred
+ * from the User model (not yet confirmed one-by-one) — if the server
+ * still errors, the next most likely fix is a field name/order mismatch
+ * inside the <user> element.
  */
 class AuthRepository {
 
     suspend fun login(loginName: String, password: String, deviceId: String): Result<User> {
         return try {
-            val params = linkedMapOf<String, String?>(
+            val userFields = linkedMapOf<String, String?>(
                 "loginName" to loginName,
                 "password" to password,
                 "deviceID" to deviceId
             )
-            val result: XmlNode = SoapClient.call("CheckUserLogin2", params)
+            val result: XmlNode = SoapClient.callComplex("CheckUserLogin2", "user", userFields)
             Result.success(mapToUser(result))
         } catch (e: Exception) {
             Result.failure(e)

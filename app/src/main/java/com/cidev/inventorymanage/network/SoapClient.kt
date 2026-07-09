@@ -18,17 +18,15 @@ import java.util.concurrent.TimeUnit
  * longer resolves from any Maven repo, and a raw SOAP 1.1 request/response
  * is simple enough not to need a library at all.
  *
- * IMPORTANT / TODO before this runs against the real server:
- * 1. SERVICE_URL is CONFIRMED (2026-07) — browsing directly to
- *    http://192.168.0.22/InventoryManage/Service.asmx from a phone on the
- *    warehouse Wi-Fi showed the auto-generated service description page
- *    listing all 64 methods, matching exactly what was extracted from the
- *    decompiled exe.
- * 2. Parameter names for each SOAP method are still inferred from the
- *    matching field names in the decompiled data classes (User, Product,
- *    etc) — NOT yet confirmed against the live server. If a call fails
- *    with a SOAP fault about an unrecognized parameter, that's the most
- *    likely fix.
+ * IMPORTANT / TODO before this runs fully against the real server:
+ * 1. SERVICE_URL is CONFIRMED (2026-07) — http://192.168.0.22/InventoryManage/Service.asmx
+ * 2. CONFIRMED (2026-07): several methods (e.g. CheckUserLogin2) take a
+ *    single strongly-typed object parameter (e.g. `User`) rather than flat
+ *    scalar parameters — the .NET method signature is
+ *    `CheckUserLogin2(ref User user)`. This was discovered from a
+ *    NullReferenceException server-side when we originally sent flat
+ *    params. Use [callComplex] with [buildComplexParam] for these; use
+ *    [call] only for methods confirmed to take flat scalar parameters.
  */
 object SoapClient {
 
@@ -44,14 +42,40 @@ object SoapClient {
         serviceUrl = "http://$ip$path"
     }
 
+    /** Calls SOAP method [action] with flat scalar [params]. */
+    suspend fun call(action: String, params: LinkedHashMap<String, String?> = linkedMapOf()): XmlNode {
+        val paramsXml = params.entries.joinToString(separator = "") { (name, value) ->
+            "<$name>${escapeXml(value.orEmpty())}</$name>"
+        }
+        return callXml(action, paramsXml)
+    }
+
     /**
-     * Calls SOAP method [action] with ordered simple string [params], and
-     * returns the parsed `<ActionNameResult>` (or equivalent) body as an
-     * [XmlNode] tree.
+     * Calls SOAP method [action] where the single body parameter is a
+     * complex/strongly-typed object (e.g. `User`, `Product`). [paramName]
+     * is the parameter name the server expects (usually the lowercase
+     * type name, e.g. "user"); [fields] are that object's properties.
+     *
+     * Build [fields] with LinkedHashMap so field order matches the
+     * decompiled data class order — some .NET services are picky about
+     * element order inside a complex type.
      */
-    suspend fun call(action: String, params: LinkedHashMap<String, String?> = linkedMapOf()): XmlNode =
+    suspend fun callComplex(action: String, paramName: String, fields: LinkedHashMap<String, String?>): XmlNode {
+        val paramsXml = buildComplexParam(paramName, fields)
+        return callXml(action, paramsXml)
+    }
+
+    fun buildComplexParam(paramName: String, fields: LinkedHashMap<String, String?>): String {
+        val inner = fields.entries.joinToString(separator = "") { (name, value) ->
+            "<$name>${escapeXml(value.orEmpty())}</$name>"
+        }
+        return "<$paramName>$inner</$paramName>"
+    }
+
+    /** Low-level call — [paramsXml] is the raw XML that goes inside `<ActionName>...</ActionName>`. */
+    suspend fun callXml(action: String, paramsXml: String): XmlNode =
         withContext(Dispatchers.IO) {
-            val envelope = buildEnvelope(action, params)
+            val envelope = buildEnvelope(action, paramsXml)
             val mediaType = "text/xml; charset=utf-8".toMediaType()
 
             val request = Request.Builder()
@@ -63,17 +87,18 @@ object SoapClient {
 
             client.newCall(request).execute().use { response ->
                 val bodyStr = response.body?.string().orEmpty()
-                if (!response.isSuccessful) {
-                    throw SoapException("HTTP ${response.code} calling $action: ${bodyStr.take(500)}")
+                // Note: ASMX returns HTTP 500 (not 200) for SOAP faults, but
+                // the body is still a well-formed <soap:Fault> — parse it
+                // either way so the person gets the actual .NET exception
+                // message instead of a raw HTTP-error dump.
+                if (bodyStr.isBlank()) {
+                    throw SoapException("HTTP ${response.code} calling $action with no response body")
                 }
                 parseSoapResponse(bodyStr, action)
             }
         }
 
-    private fun buildEnvelope(action: String, params: LinkedHashMap<String, String?>): String {
-        val paramsXml = params.entries.joinToString(separator = "") { (name, value) ->
-            "<$name>${escapeXml(value.orEmpty())}</$name>"
-        }
+    private fun buildEnvelope(action: String, paramsXml: String): String {
         return """<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
@@ -123,8 +148,13 @@ object SoapClient {
             event = parser.next()
         }
 
-        val body = findDeep(root, "Body") ?: throw SoapException("No <soap:Body> in response for $action")
+        val body = findDeep(root, "Body")
+            ?: throw SoapException("HTTP error calling $action, response wasn't SOAP: ${xml.take(500)}")
+
         findDeep(body, "Fault")?.let { fault ->
+            // faultstring on .NET ASMX faults is normally the full nested
+            // exception message/stack — genuinely useful for debugging,
+            // so surface it as-is rather than truncating.
             val faultString = fault.childText("faultstring").ifBlank { "Unknown SOAP fault" }
             throw SoapException("SOAP fault calling $action: $faultString")
         }
