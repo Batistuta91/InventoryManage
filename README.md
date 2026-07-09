@@ -8,9 +8,12 @@ required (assuming the ASP.NET/IIS service keeps running on the WMS box).
 ## What's actually working right now
 
 - ✅ Project builds as a standard Android Studio / Gradle project (Kotlin).
-- ✅ `SoapClient` — generic SOAP 1.1 caller using ksoap2-android (via a
-  JitPack-mirrored fork — see the dependency comment in `app/build.gradle.kts`
-  for why).
+- ✅ `SoapClient` — hand-rolled SOAP 1.1 client (OkHttp + Android's
+  built-in XmlPullParser). ksoap2-android was tried first but its own POM
+  depends on ancient J2ME artifacts (kxml, kobjects-j2me, me4se) that
+  aren't published to any reachable Maven repository — confirmed by an
+  actual Codemagic build failure, not a guess. See the comment in
+  `app/build.gradle.kts` for details.
 - ✅ Login screen → `CheckUserLogin2` call → dynamic main menu built from
   the returned `User` permission flags (same pattern as the legacy `FrmMain`).
 - ✅ Product search screen → `SearchProduct` call, results list.

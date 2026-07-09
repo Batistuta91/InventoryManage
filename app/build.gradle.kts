@@ -43,15 +43,16 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // SOAP client — talks to the existing InvManageWebService (Service.asmx)
-    // exactly like the legacy Windows Mobile app does. No server changes needed.
-    //
-    // NOTE: com.google.code.ksoap2-android:ksoap2-android:3.6.4 (the
-    // "official" coordinates) only live on an old Sonatype OSSRH repo that
-    // isn't mirrored to Maven Central — Gradle can't resolve it from there,
-    // which is what broke the first Codemagic build attempt. Using an
-    // actively-mirrored JitPack fork instead: same library, same API.
-    implementation("com.github.kekru:ksoap2-android:v3.6.2-useragentfix")
+    // SOAP client — hand-rolled (see network/SoapClient.kt) using OkHttp +
+    // Android's built-in XmlPullParser, instead of the ksoap2-android
+    // library. Tried ksoap2-android first (via a JitPack fork, since the
+    // official Maven coordinates don't resolve); that build then failed
+    // with a real, verified error: ksoap2-android's own POM depends on
+    // net.sourceforge.kxml:kxml:2.2.4, net.sourceforge.kobjects, and
+    // net.sourceforge.me4se — none of which are published to any
+    // currently-reachable Maven repository. A raw SOAP 1.1 POST + XML
+    // parse avoids that dependency chain entirely.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

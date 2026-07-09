@@ -27,10 +27,14 @@ Working checklist for the port. Update ✅/⬜ as modules land.
   `192.168.0.32`). Not needed for the handheld port, but confirms
   `192.168.0.22` is a general Amodat WMS application server, not just a
   bare SOAP endpoint.
-- **Build note:** the "official" ksoap2-android Maven coordinates
-  (`com.google.code.ksoap2-android:ksoap2-android:3.6.4`) don't resolve
-  from Maven Central — they only ever lived on an old Sonatype repo. The
-  project uses a JitPack-mirrored fork instead (`com.github.kekru:ksoap2-android`).
+- **Build note (updated after a real Codemagic build failure):** dropped
+  ksoap2-android entirely. First tried a JitPack-mirrored fork
+  (`com.github.kekru:ksoap2-android`) since the official coordinates don't
+  resolve from Maven Central — but ksoap2-android's own POM transitively
+  depends on `net.sourceforge.kxml:kxml:2.2.4`, `kobjects-j2me`, and
+  `me4se`, none of which are published to any currently-reachable Maven
+  repository. `SoapClient.kt` is now a hand-rolled SOAP 1.1 client using
+  OkHttp + Android's built-in XmlPullParser instead.
 
 ## SOAP methods (64 total, sync versions — Begin/End async variants omitted)
 
