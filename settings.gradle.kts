@@ -10,7 +10,6 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-        maven { url = uri("https://jitpack.io") } // for ksoap2-android
     }
 }
 rootProject.name = "InventoryManageAndroid"

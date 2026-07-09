@@ -8,7 +8,11 @@ required (assuming the ASP.NET/IIS service keeps running on the WMS box).
 ## What's actually working right now
 
 - ✅ Project builds as a standard Android Studio / Gradle project (Kotlin).
-- ✅ `SoapClient` — generic SOAP 1.1 caller using ksoap2-android.
+- ✅ `SoapClient` — hand-rolled SOAP 1.1 client (plain XML + OkHttp), **not**
+  the ksoap2-android library. That library's transitive dependencies
+  (kxml, kobjects-j2me, me4se) are dead 2004-era code with no working Maven
+  repository anywhere anymore — not worth fighting. A raw SOAP request/parse
+  is simple enough to own directly.
 - ✅ Login screen → real `CheckUserLogin2` call → dynamic main menu built
   from the returned `User` permission flags (same pattern as the legacy
   `FrmMain`).

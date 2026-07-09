@@ -43,15 +43,14 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
-    // SOAP client — talks to the existing InvManageWebService (Service.asmx) exactly
-    // like the legacy Windows Mobile app does. No server changes needed.
-    //
-    // NOTE: the "official" com.google.code.ksoap2-android:ksoap2-android:3.6.4
-    // coordinate is NOT on Maven Central — it only ever lived on a legacy
-    // Sonatype OSSRH repo that's no longer reliable. Using a maintained
-    // fork published via JitPack instead (JitPack repo is already declared
-    // in settings.gradle.kts).
-    implementation("com.github.kekru:ksoap2-android:v3.6.2-useragentfix")
+    // SOAP client — hand-rolled (see network/SoapClient.kt) using plain XML
+    // + OkHttp instead of the ksoap2-android library. ksoap2's transitive
+    // dependencies (kxml, kobjects-j2me, me4se) are dead 2004-era libraries
+    // that no longer exist on any reachable Maven repository — not worth
+    // fighting. A raw SOAP 1.1 POST + XML parse is simple enough to own
+    // directly, and Android ships an XmlPullParser (android.util.Xml)
+    // out of the box so we don't need an XML library either.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")

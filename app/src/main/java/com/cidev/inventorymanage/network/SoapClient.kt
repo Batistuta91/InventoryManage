@@ -1,66 +1,149 @@
 package com.cidev.inventorymanage.network
 
-import org.ksoap2.SoapEnvelope
-import org.ksoap2.serialization.SoapObject
-import org.ksoap2.serialization.SoapSerializationEnvelope
-import org.ksoap2.transport.HttpTransportSE
+import android.util.Xml
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.xmlpull.v1.XmlPullParser
+import java.io.StringReader
+import java.util.concurrent.TimeUnit
 
 /**
- * Thin wrapper around ksoap2-android that talks to the SAME
- * InvManageWebService (Service.asmx) the Windows Mobile client uses.
+ * Small hand-rolled SOAP 1.1 client for the legacy InvManageWebService
+ * (Service.asmx). Deliberately doesn't use any SOAP library — ksoap2's
+ * dependency chain (kxml/kobjects/me4se) is dead 2004-era code that no
+ * longer resolves from any Maven repo, and a raw SOAP 1.1 request/response
+ * is simple enough not to need a library at all.
  *
  * IMPORTANT / TODO before this runs against the real server:
- * 1. NAMESPACE and SERVICE_URL below are best-effort guesses reconstructed
- *    from the decompiled binary (SOAP actions all live under
- *    http://tempuri.org/<MethodName>, which is the .NET default namespace
- *    for a web service that was never given a custom [WebService(Namespace=...)]
- *    attribute — so NAMESPACE is very likely correct as-is).
- * 2. SERVICE_URL's path ("/InvManageWebService/Service.asmx") could NOT be
- *    verified because the exe builds it from ServiceIP.txt at runtime and
- *    the literal path string isn't embedded anywhere I could find in the
- *    binary. Please confirm the real path — easiest way: open
- *    http://192.168.0.22/ in a browser on the warehouse LAN and look for
- *    the IIS virtual directory / .asmx file, or check the device registry /
- *    config on one of the working MC55A0 units.
+ * 1. NAMESPACE and SERVICE_URL are best-effort guesses reconstructed from
+ *    the decompiled binary + the confirmed IIS virtual directory name
+ *    ("InventoryManage") — see docs/API_MAP.md for the full reasoning.
+ *    Please confirm by browsing directly to the .asmx URL.
+ * 2. Parameter names for each SOAP method are inferred from the matching
+ *    field names in the decompiled data classes (User, Product, etc).
+ *    If a call fails with a SOAP fault about an unrecognized parameter,
+ *    that's the most likely fix.
  */
 object SoapClient {
 
     private const val NAMESPACE = "http://tempuri.org/"
-
-    // Updated from the "/InventoryManage/WebResource.axd" path seen in
-    // MainMenu.aspx (the browser-based reports/admin site sitting on the
-    // same server) — the IIS virtual directory is "InventoryManage", and
-    // ASP.NET convention puts a web service at a subfolder matching its
-    // C# namespace (InventoryManage.InvManageWebService.Service), so this
-    // is now a much more confident guess than before. Still not confirmed
-    // by actually hitting the URL.
     private var serviceUrl: String = "http://192.168.0.22/InventoryManage/InvManageWebService/Service.asmx"
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .build()
 
     fun configureServer(ip: String, path: String = "/InventoryManage/InvManageWebService/Service.asmx") {
         serviceUrl = "http://$ip$path"
     }
 
     /**
-     * Generic SOAP 1.1 call. [action] is the method name exactly as it
-     * appears in the decompiled Service class (e.g. "CheckUserLogin2").
-     * [params] is an ordered map of parameter name -> value, matching the
-     * method's parameter order in the original .NET service.
+     * Calls SOAP method [action] with ordered simple string [params], and
+     * returns the parsed `<ActionNameResult>` (or equivalent) body as an
+     * [XmlNode] tree.
      */
-    suspend fun call(action: String, params: LinkedHashMap<String, Any?> = linkedMapOf()): SoapObject =
+    suspend fun call(action: String, params: LinkedHashMap<String, String?> = linkedMapOf()): XmlNode =
         withContext(Dispatchers.IO) {
-            val request = SoapObject(NAMESPACE, action)
-            params.forEach { (name, value) -> request.addProperty(name, value) }
+            val envelope = buildEnvelope(action, params)
+            val mediaType = "text/xml; charset=utf-8".toMediaType()
 
-            val envelope = SoapSerializationEnvelope(SoapEnvelope.VER11).apply {
-                dotNet = true // .NET-specific envelope quirks (matches the original client)
-                setOutputSoapObject(request)
+            val request = Request.Builder()
+                .url(serviceUrl)
+                .addHeader("SOAPAction", "\"$NAMESPACE$action\"")
+                .addHeader("Content-Type", "text/xml; charset=utf-8")
+                .post(envelope.toRequestBody(mediaType))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                val bodyStr = response.body?.string().orEmpty()
+                if (!response.isSuccessful) {
+                    throw SoapException("HTTP ${response.code} calling $action: ${bodyStr.take(500)}")
+                }
+                parseSoapResponse(bodyStr, action)
             }
-
-            val transport = HttpTransportSE(serviceUrl, 30_000)
-            transport.call(NAMESPACE + action, envelope)
-
-            envelope.response as SoapObject
         }
+
+    private fun buildEnvelope(action: String, params: LinkedHashMap<String, String?>): String {
+        val paramsXml = params.entries.joinToString(separator = "") { (name, value) ->
+            "<$name>${escapeXml(value.orEmpty())}</$name>"
+        }
+        return """<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <$action xmlns="$NAMESPACE">$paramsXml</$action>
+  </soap:Body>
+</soap:Envelope>"""
+    }
+
+    private fun escapeXml(s: String): String = s
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;")
+        .replace("'", "&apos;")
+
+    /**
+     * Parses the full SOAP envelope and returns the node one level inside
+     * the `<ActionNameResponse>` element (i.e. the actual result payload —
+     * typically `<ActionNameResult>` for standard .NET ASMX services, but
+     * we just return whatever is there so callers can navigate it either way).
+     */
+    private fun parseSoapResponse(xml: String, action: String): XmlNode {
+        val parser: XmlPullParser = Xml.newPullParser()
+        parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
+        parser.setInput(StringReader(xml))
+
+        val root = XmlNode("root")
+        val stack = ArrayDeque<XmlNode>()
+        stack.addLast(root)
+
+        var event = parser.eventType
+        while (event != XmlPullParser.END_DOCUMENT) {
+            when (event) {
+                XmlPullParser.START_TAG -> {
+                    val node = XmlNode(localName(parser.name))
+                    stack.last().children.add(node)
+                    stack.addLast(node)
+                }
+                XmlPullParser.TEXT -> {
+                    val t = parser.text?.trim().orEmpty()
+                    if (t.isNotEmpty()) stack.last().text += t
+                }
+                XmlPullParser.END_TAG -> {
+                    if (stack.size > 1) stack.removeLast()
+                }
+            }
+            event = parser.next()
+        }
+
+        val body = findDeep(root, "Body") ?: throw SoapException("No <soap:Body> in response for $action")
+        findDeep(body, "Fault")?.let { fault ->
+            val faultString = fault.childText("faultstring").ifBlank { "Unknown SOAP fault" }
+            throw SoapException("SOAP fault calling $action: $faultString")
+        }
+
+        // Standard ASMX shape: Body > ActionNameResponse > ActionNameResult
+        val responseNode = findDeep(body, "${action}Response")
+            ?: body.children.firstOrNull()
+            ?: throw SoapException("Empty <soap:Body> in response for $action")
+
+        return responseNode.child("${action}Result") ?: responseNode
+    }
+
+    private fun localName(qname: String): String = qname.substringAfterLast(':')
+
+    private fun findDeep(node: XmlNode, name: String): XmlNode? {
+        if (node.name.equals(name, ignoreCase = true)) return node
+        for (child in node.children) {
+            findDeep(child, name)?.let { return it }
+        }
+        return null
+    }
 }
+
+class SoapException(message: String) : Exception(message)
