@@ -42,7 +42,10 @@ required (assuming the ASP.NET/IIS service keeps running on the WMS box).
    with a SOAP fault about an unrecognized parameter, that's almost always
    the fix — the field names in the model classes are very likely correct
    since those came straight from the binary's metadata.
-4. You'll need a launcher icon (`mipmap/ic_launcher`) — not included here.
+3. You now have a placeholder launcher icon (simple "IM" monogram,
+   generated, not designed) — good enough to build and run. Swap it out
+   whenever you want real branding — just replace the PNGs under
+   `res/mipmap-*/ic_launcher.png`.
 
 ## Why native Kotlin instead of React Native/Flutter/PWA
 
