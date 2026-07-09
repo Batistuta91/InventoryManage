@@ -28,6 +28,19 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:hint="כתובת שרת (IP)">
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/edtServerIp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="192.168.0.22"
+            android:inputType="text"/>
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:hint="שם משתמש">
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/edtUsername"
@@ -39,7 +52,7 @@
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="סיסמה"
+        android:hint="סיסמה (לא בשימוש כרגע)"
         app:passwordToggleEnabled="true"
         xmlns:app="http://schemas.android.com/apk/res-auto">
         <com.google.android.material.textfield.TextInputEditText

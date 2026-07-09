@@ -22,19 +22,29 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // TODO: read the real WMS IP from a settings screen instead of
-        // hardcoding — for now this matches ServiceIP.txt (192.168.0.22).
-        SoapClient.configureServer("192.168.0.22")
+        // Remember the last IP the person typed, default to the one from
+        // ServiceIP.txt (192.168.0.22) on first launch.
+        val prefs = getSharedPreferences("inventory_manage_prefs", MODE_PRIVATE)
+        binding.edtServerIp.setText(prefs.getString("server_ip", "192.168.0.22"))
 
         binding.btnLogin.setOnClickListener { attemptLogin() }
     }
 
     private fun attemptLogin() {
+        val serverIp = binding.edtServerIp.text?.toString()?.trim().orEmpty()
+        if (serverIp.isEmpty()) {
+            showError("נא למלא כתובת שרת (IP)")
+            return
+        }
+        getSharedPreferences("inventory_manage_prefs", MODE_PRIVATE)
+            .edit().putString("server_ip", serverIp).apply()
+        SoapClient.configureServer(serverIp)
+
         val username = binding.edtUsername.text?.toString()?.trim().orEmpty()
         val password = binding.edtPassword.text?.toString().orEmpty()
 
-        if (username.isEmpty() || password.isEmpty()) {
-            showError("נא למלא שם משתמש וסיסמה")
+        if (username.isEmpty()) {
+            showError("נא למלא שם משתמש")
             return
         }
 
