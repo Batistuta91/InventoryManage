@@ -8,6 +8,9 @@ workflows:
         PACKAGE_NAME: "com.cidev.inventorymanage"
       java: 17
     scripts:
+      - name: Ensure gradlew is executable
+        script: |
+          chmod +x ./gradlew
       - name: Build debug APK
         script: |
           ./gradlew assembleDebug
