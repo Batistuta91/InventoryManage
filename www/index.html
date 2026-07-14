@@ -1,1354 +1,751 @@
 <!DOCTYPE html>
 <html lang="he">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>מפענח תאריך ייצור</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: #eef2f3;
-            color: #333;
-            direction: rtl;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>ספר טלפונים סידב</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css">
+<style>
+:root {
+    --primary-color: #0d47a1;
+    --secondary-color: #1976d2;
+    --accent-color: #01b5b5;
+    --background-light: #eef3f9;
+    --background-dark: #14181c;
+    --text-light: #e8eaed;
+    --text-dark: #1c1f24;
+    --card-bg-light: #ffffff;
+    --card-bg-dark: #23282e;
+    --header-bg-light: #ffffff;
+    --header-bg-dark: #1a1f25;
+    --border-light: #e1e7ef;
+    --border-dark: #313841;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body {
+    margin: 0; padding: 0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    direction: rtl;
+    background: var(--background-light);
+    color: var(--text-dark);
+    height: 100%;
+    overscroll-behavior-y: contain;
+}
+body.dark {
+    background: var(--background-dark);
+    color: var(--text-light);
+}
 
-        body[lang="ar"] {
-            font-family: 'Tajawal', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+/* ---------- App bar ---------- */
+.appbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding-top: calc(var(--safe-top) + 10px);
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.appbar-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 10px 10px;
+    gap: 6px;
+}
+.appbar-title { font-size: 1.15em; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.appbar-sub { font-size: 0.72em; opacity: 0.85; margin-top: -2px; }
+.appbar-icons { display: flex; gap: 2px; }
+.icon-btn {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 1.05em; background: rgba(255,255,255,0.12);
+    border: none; cursor: pointer;
+}
+.icon-btn:active { background: rgba(255,255,255,0.28); }
 
-        h1 {
-            background-color: #2b5876;
-            background-image: linear-gradient(to right, #4e4376, #2b5876);
-            color: white;
-            width: 100%;
-            text-align: center;
-            padding: 1.5rem 0;
-            margin: 0;
-            font-size: 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+/* ---------- Search / filter bar ---------- */
+.searchbar {
+    padding: 0 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.search-input-wrap { position: relative; }
+.search-input-wrap input {
+    width: 100%;
+    padding: 11px 38px 11px 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1em;
+    background: rgba(255,255,255,0.95);
+    color: var(--text-dark);
+}
+.search-input-wrap i {
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--primary-color);
+}
+.chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+    flex: 0 0 auto;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 0.85em;
+    white-space: nowrap;
+    border: 1px solid rgba(255,255,255,0.35);
+}
+.chip.active { background: #fff; color: var(--primary-color); font-weight: 700; border-color: #fff; }
 
-        form {
-            background-color: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 500px;
-            margin-top: 2rem;
-        }
+/* ---------- Content ---------- */
+.content { padding: 12px 10px calc(90px + var(--safe-bottom)); max-width: 640px; margin: 0 auto; }
+.empty-state { text-align: center; opacity: 0.6; margin-top: 60px; font-size: 0.95em; }
+.dept-card {
+    background: var(--card-bg-light);
+    border-radius: 14px;
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    border: 1px solid var(--border-light);
+}
+body.dark .dept-card { background: var(--card-bg-dark); border-color: var(--border-dark); }
+.dept-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 13px 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.dept-header-title { font-weight: 700; font-size: 1em; color: var(--primary-color); display:flex; align-items:center; gap:8px; }
+body.dark .dept-header-title { color: #7fb2ff; }
+.dept-count {
+    background: var(--background-light); color: var(--primary-color);
+    border-radius: 12px; padding: 1px 9px; font-size: 0.78em; font-weight: 700;
+}
+body.dark .dept-count { background: #2c333b; color: #7fb2ff; }
+.dept-chevron { transition: transform 0.2s; color: #9aa5b1; }
+.dept-card.open .dept-chevron { transform: rotate(180deg); }
+.dept-body { max-height: 0; overflow: hidden; transition: max-height 0.25s ease; }
+.dept-card.open .dept-body { max-height: 3000px; }
+.contact-item {
+    padding: 11px 14px;
+    border-top: 1px solid var(--border-light);
+    display: flex; flex-direction: column; gap: 6px;
+}
+body.dark .contact-item { border-color: var(--border-dark); }
+.contact-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.contact-name { font-weight: 700; font-size: 1em; }
+.contact-position { font-size: 0.82em; opacity: 0.7; margin-top: 1px; }
+.contact-meta { font-size: 0.85em; opacity: 0.85; display: flex; gap: 10px; flex-wrap: wrap; }
+.contact-meta span { display: flex; align-items: center; gap: 4px; }
+.contact-actions { display: flex; gap: 6px; }
+.contact-actions button {
+    border: none; background: var(--background-light); border-radius: 8px;
+    width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    font-size: 1em; cursor: pointer;
+}
+body.dark .contact-actions button { background: #2c333b; }
+.contact-actions .fa-phone { color: var(--secondary-color); }
+.contact-actions .fa-whatsapp { color: #25D366; }
+.contact-actions .fa-envelope { color: #E63946; }
+.contact-actions .fa-address-book { color: #6c5ce7; }
+.contact-actions .fa-star.active { color: #FFD700; }
+.contact-actions .fa-edit { color: #607d8b; }
 
-        label {
-            display: block;
-            margin-bottom: 0.75rem;
-            font-weight: bold;
-            font-size: 1rem;
-            color: #4e4376;
-        }
+/* ---------- FAB ---------- */
+.fab {
+    position: fixed;
+    left: 18px;
+    bottom: calc(20px + var(--safe-bottom));
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--accent-color); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4em; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    z-index: 60;
+}
 
-        select, input {
-            width: 100%;
-            padding: 0.6rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
+/* ---------- Bottom status strip ---------- */
+.update-strip {
+    text-align: center; font-size: 0.75em; opacity: 0.55; padding: 6px 0 2px;
+}
 
-        select:focus, input:focus {
-            outline: none;
-            border-color: #2b5876;
-        }
-
-        button {
-            background-color: #2b5876;
-            background-image: linear-gradient(to right, #4e4376, #2b5876);
-            color: white;
-            border: none;
-            padding: 0.8rem;
-            border-radius: 6px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s, transform 0.2s;
-        }
-
-        button:hover {
-            background-color: #4e4376;
-            transform: translateY(-2px);
-        }
-
-        button:active {
-            transform: translateY(0);
-        }
-
-        p#result {
-            background-color: #ffffff;
-            padding: 1rem;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-            width: 90%;
-            max-width: 500px;
-            margin-top: 1rem;
-            word-break: break-word;
-            color: #333;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        #barcode-list {
-            margin-top: 1rem;
-            max-width: 500px;
-            word-break: break-word;
-            text-align: center;
-        }
-
-        #barcode-list ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        #barcode-list li {
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            color: #666;
-        }
-
-        #charCount {
-            font-size: 0.9rem;
-            color: #2b5876;
-            margin-bottom: 1rem;
-            font-weight: bold;
-        }
-
-        #decodingBoxes {
-            direction: ltr;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
-            justify-content: center;
-            align-items: center;
-            width: auto;
-            padding: 10px;
-            margin: 20px auto;
-            border: 1px solid #ddd;
-            background-color: #f7f7f7;
-            border-radius: 8px;
-        }
-
-        #decodingBoxes div {
-            width: 40px;
-            height: 40px;
-            border: 1px solid #4e4376;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: bold;
-            background-color: #ffffff;
-            border-radius: 6px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-
-        #decodingBoxes div[data-label="Year"] {
-            background-color: #e6f3ff;
-        }
-
-        #decodingBoxes div[data-label="Week"] {
-            background-color: #e6ffe6;
-        }
-
-        #decodingBoxes div[data-label="Month"] {
-            background-color: #ffe6e6;
-        }
-
-        #decodingBoxes div[data-label="Day"] {
-            background-color: #f3e6ff;
-        }
-
-        select#language {
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            text-align: center;
-            text-align-last: center;
-            direction: rtl;
-            color: #000;
-            background-color: #fff;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 0.3rem;
-            font-size: 12px;
-            width: 100px;
-            height: 30px;
-        }
-
-        select#language[lang="ar"] {
-            font-family: 'Tajawal', sans-serif;
-        }
-    </style>
+/* ---------- Modals ---------- */
+.modal {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+    z-index: 200; align-items: flex-end; justify-content: center;
+}
+.modal.show { display: flex; }
+.sheet {
+    background: var(--card-bg-light); color: var(--text-dark);
+    width: 100%; max-width: 640px;
+    border-radius: 18px 18px 0 0;
+    padding: 18px 18px calc(18px + var(--safe-bottom));
+    max-height: 88vh; overflow-y: auto;
+    animation: slideUp 0.22s ease-out;
+}
+body.dark .sheet { background: var(--card-bg-dark); color: var(--text-light); }
+@keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.sheet h2 { margin: 0 0 14px; font-size: 1.15em; text-align: center; }
+.sheet label { display: block; font-size: 0.85em; font-weight: 700; margin: 12px 0 4px; color: var(--primary-color); }
+body.dark .sheet label { color: #7fb2ff; }
+.sheet input, .sheet select {
+    width: 100%; padding: 10px; border-radius: 9px; border: 1px solid var(--border-light);
+    font-size: 1em; background: var(--background-light); color: var(--text-dark);
+}
+body.dark .sheet input, body.dark .sheet select { background: #2c333b; color: var(--text-light); border-color: var(--border-dark); }
+.sheet-actions { display: flex; gap: 8px; margin-top: 18px; }
+.btn {
+    flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 0.98em;
+    font-weight: 700; cursor: pointer;
+}
+.btn-primary { background: var(--primary-color); color: #fff; }
+.btn-danger { background: #e63946; color: #fff; }
+.btn-ghost { background: var(--background-light); color: var(--text-dark); }
+body.dark .btn-ghost { background: #2c333b; color: var(--text-light); }
+.close-x { position: absolute; left: 16px; top: 14px; font-size: 1.4em; color: #9aa5b1; background: none; border: none; }
+.sheet { position: relative; }
+.pw-error { color: #e63946; font-size: 0.85em; margin-top: 8px; display: none; }
+.column-choice { display: flex; gap: 14px; font-size: 0.9em; margin-top: 6px; font-weight: normal; }
+.loading-row { text-align: center; padding: 40px 0; opacity: 0.6; }
+</style>
 </head>
 <body>
-    <h1>מפענח תאריך ייצור</h1>
-  <select id="language" aria-label="Select Language">
-    <option value="he">עברית</option>
-    <option value="en">English</option>
-    <option value="ar">العربية</option>
-    <option value="fr">Français</option>
-    <option value="es">Español</option>
-    <option value="de">Deutsch</option>
-    <option value="it">Italiano</option>
-    <option value="pt">Português</option>
-    <option value="ru">Русский</option>
-    <option value="zh">中文</option>
-</select>
 
+<div class="appbar">
+    <div class="appbar-row">
+        <div class="appbar-icons">
+            <button class="icon-btn" id="darkToggle" title="מצב כהה"><i class="fas fa-moon"></i></button>
+            <button class="icon-btn" id="refreshBtn" title="רענן"><i class="fas fa-sync-alt"></i></button>
+        </div>
+        <div style="text-align:center; flex:1;">
+            <div class="appbar-title">ספר טלפונים סידב</div>
+            <div class="appbar-sub" id="updateDate">טוען...</div>
+        </div>
+        <div style="width:40px"></div>
+    </div>
+    <div class="searchbar">
+        <div class="search-input-wrap">
+            <input type="text" id="searchInput" placeholder="חיפוש לפי שם, תפקיד או שלוחה...">
+            <i class="fas fa-search"></i>
+        </div>
+        <div class="chips" id="deptChips"></div>
+    </div>
+</div>
 
-    <form id="dateCodeForm">
-        <label for="manufacturer">בחר יצרן:</label>
-        <select id="manufacturer" name="manufacturer" aria-label="Select Manufacturer">
-            <option value="samsung">SAMSUNG</option>
-            <option value="yageo">YAGEO</option>
-            <option value="viking">VIKING</option>
-            <option value="panasonic">PANASONIC</option>
-            <option value="omron">OMRON</option>
-            <option value="hitano">HITANO</option>
-            <option value="eaton">EATON</option>
-            <option value="hamburg">HAMBURG</option> 
-            <option value="conquer">CONQUER</option>
-            <option value="unisonic">UNISONIC</option>
-            <option value="everlight">EVERLIGHT</option>
-            <option value="gigadevice">GIGADEVICE</option>
-            <option value="bellwether">BELLWETHER</option>
-            <option value="delta">DELTA (DC indicated within serial number)</option>
-            <option value="bourns">BOURNS</option>
+<div class="content" id="content">
+    <div class="loading-row" id="loadingRow"><i class="fas fa-spinner fa-spin"></i> טוען אנשי קשר...</div>
+</div>
 
+<button class="fab" id="addFab" title="הוסף איש קשר"><i class="fas fa-plus"></i></button>
 
-        </select>
-        <label for="dateCode">הכנס קוד תאריך:</label>
-        <input type="text" id="dateCode" name="dateCode" required aria-label="Enter Date Code">
-        <p id="charCount">מספר התווים: 0</p>
-        <button type="submit" aria-label="Decode Date Code">פענח</button>
-        <button type="button" id="scanBarcode" aria-label="Scan Barcode">סרוק ברקוד</button>
+<!-- Password sheet -->
+<div class="modal" id="passwordModal">
+  <div class="sheet" style="max-width:400px">
+    <button class="close-x" id="pwClose">&times;</button>
+    <h2>אימות סיסמה</h2>
+    <input type="password" id="passwordInput" placeholder="הזן סיסמה">
+    <div class="pw-error" id="passwordError">סיסמה לא נכונה</div>
+    <div class="sheet-actions">
+        <button class="btn btn-primary" id="pwConfirm">אישור</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contact sheet -->
+<div class="modal" id="contactModal">
+  <div class="sheet">
+    <button class="close-x" id="contactClose">&times;</button>
+    <h2 id="modalTitle">הוסף איש קשר</h2>
+    <form id="contactForm">
+        <input type="hidden" id="contactId">
+        <label for="name">שם</label>
+        <input type="text" id="name" required>
+
+        <label for="positionSelect">תפקיד</label>
+        <select id="positionSelect"></select>
+        <input type="text" id="newPosition" style="display:none;margin-top:8px;" placeholder="הקלד תפקיד חדש">
+
+        <label for="department">מחלקה</label>
+        <select id="department" required></select>
+        <input type="text" id="newDepartment" style="display:none;margin-top:8px;" placeholder="הקלד שם מחלקה חדשה">
+        <div id="chooseColumnBlock" style="display:none;">
+            <label style="margin-bottom:2px;">קבוצת תצוגה</label>
+            <div class="column-choice">
+                <label><input type="radio" name="newDepartmentColumn" value="right" checked> עמודה א׳</label>
+                <label><input type="radio" name="newDepartmentColumn" value="left"> עמודה ב׳</label>
+            </div>
+        </div>
+
+        <label for="extensionSelect">שלוחה</label>
+        <select id="extensionSelect"></select>
+        <input type="text" id="newExtension" style="display:none;margin-top:8px;" placeholder="הקלד שלוחה חדשה">
+
+        <label for="phone">טלפון</label>
+        <input type="text" id="phone">
+
+        <label for="email">אימייל</label>
+        <input type="email" id="email">
+
+        <div class="sheet-actions">
+            <button type="submit" class="btn btn-primary">שמור</button>
+            <button type="button" class="btn btn-danger" id="deleteContactBtn" style="display:none;">מחק</button>
+        </div>
     </form>
-    <p id="result"></p>
-    <div id="barcode-list"></div>
-    <div id="decodingBoxes"></div>
-    <input type="file" id="imageInput" accept="image/*" style="display:none">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
-    <script>
-        const translations = {
-    he: {
-        title: "מפענח תאריך ייצור",
-        selectManufacturer: "בחר יצרן:",
-        enterDateCode: "הכנס קוד תאריך:",
-        decodeButton: "פענח",
-        scanBarcodeButton: "סרוק ברקוד",
-        charCount: "מספר התווים: ",
-        result: "תוצאה:",
-        decodingBoxes: "פענוח קוד:",
-        invalidFormat: "פורמט תאריך לא חוקי עבור {manufacturer}.",
-        invalidCharacters: "קוד תאריך מכיל תווים לא חוקיים.",
-        noFileSelected: "לא נבחר קובץ.",
-        invalidFileType: "סוג קובץ לא תקין. אנא בחר תמונה.",
-        barcodeDetected: "ברקוד מזוהה",
-        barcodeNotDetected: "לא זוהה ברקוד. נסה שוב.",
-        imageLoadError: "שגיאה בטעינת התמונה.",
-        fileReadError: "שגיאה בקריאת הקובץ.",
-        processing: "מעבד תמונה..."
-    },
-    en: {
-        title: "Production Date Decoder",
-        selectManufacturer: "Select Manufacturer:",
-        enterDateCode: "Enter Date Code:",
-        decodeButton: "Decode",
-        scanBarcodeButton: "Scan Barcode",
-        charCount: "Character Count: ",
-        result: "Result:",
-        decodingBoxes: "Decoding Code:",
-        invalidFormat: "Invalid date format for {manufacturer}.",
-        invalidCharacters: "Date code contains invalid characters.",
-        noFileSelected: "No file selected.",
-        invalidFileType: "Invalid file type. Please select an image.",
-        barcodeDetected: "Barcode detected",
-        barcodeNotDetected: "No barcode detected. Try again.",
-        imageLoadError: "Error loading image.",
-        fileReadError: "Error reading file.",
-        processing: "Processing image..."
-    },
-    ar: {
-        title: "مُفسر تاريخ الإنتاج",
-        selectManufacturer: "اختر الشركة المصنعة:",
-        enterDateCode: "أدخل رمز التاريخ:",
-        decodeButton: "فك الترميز",
-        scanBarcodeButton: "مسح الباركود",
-        charCount: "عدد الأحرف: ",
-        result: "النتيجة:",
-        decodingBoxes: "تفكيك الكود:",
-        invalidFormat: "تنسيق التاريخ غير صالح لـ {manufacturer}.",
-        invalidCharacters: "رمز التاريخ يحتوي على أحرف غير صالحة.",
-        noFileSelected: "لم يتم اختيار ملف.",
-        invalidFileType: "نوع الملف غير صالح. يرجى اختيار صورة.",
-        barcodeDetected: "تم اكتشاف الباركود",
-        barcodeNotDetected: "لم يتم اكتشاف الباركود. حاول مرة أخرى.",
-        imageLoadError: "خطأ في تحميل الصورة.",
-        fileReadError: "خطأ في قراءة الملف.",
-        processing: "جارٍ معالجة الصورة..."
-    },
-    fr: {
-        title: "Décodeur de Date de Production",
-        selectManufacturer: "Sélectionner le fabricant:",
-        enterDateCode: "Entrez le code de date:",
-        decodeButton: "Décoder",
-        scanBarcodeButton: "Scanner le code-barres",
-        charCount: "Nombre de caractères: ",
-        result: "Résultat:",
-        decodingBoxes: "Décodage du code:",
-        invalidFormat: "Format de date invalide pour {manufacturer}.",
-        invalidCharacters: "Le code de date contient des caractères invalides.",
-        noFileSelected: "Aucun fichier sélectionné.",
-        invalidFileType: "Type de fichier invalide. Veuillez sélectionner une image.",
-        barcodeDetected: "Code-barres détecté",
-        barcodeNotDetected: "Aucun code-barres détecté. Réessayez.",
-        imageLoadError: "Erreur de chargement de l'image.",
-        fileReadError: "Erreur de lecture du fichier.",
-        processing: "Traitement de l'image..."
-    },
-    es: {
-        title: "Descodificador de Fecha de Producción",
-        selectManufacturer: "Seleccionar fabricante:",
-        enterDateCode: "Introducir código de fecha:",
-        decodeButton: "Descifrar",
-        scanBarcodeButton: "Escanear código de barras",
-        charCount: "Número de caracteres: ",
-        result: "Resultado:",
-        decodingBoxes: "Descodificación del código:",
-        invalidFormat: "Formato de fecha inválido para {manufacturer}.",
-        invalidCharacters: "El código de fecha contiene caracteres inválidos.",
-        noFileSelected: "No se seleccionó ningún archivo.",
-        invalidFileType: "Tipo de archivo inválido. Por favor, selecciona una imagen.",
-        barcodeDetected: "Código de barras detectado",
-        barcodeNotDetected: "No se detectó ningún código de barras. Intenta de nuevo.",
-        imageLoadError: "Error al cargar la imagen.",
-        fileReadError: "Error al leer el archivo.",
-        processing: "Procesando imagen..."
-    },
-    de: {
-        title: "Produktionsdatums-Decoder",
-        selectManufacturer: "Hersteller auswählen:",
-        enterDateCode: "Datumscode eingeben:",
-        decodeButton: "Dekodieren",
-        scanBarcodeButton: "Barcode scannen",
-        charCount: "Zeichenanzahl: ",
-        result: "Ergebnis:",
-        decodingBoxes: "Code-Dekodierung:",
-        invalidFormat: "Ungültiges Datumsformat für {manufacturer}.",
-        invalidCharacters: "Datumscode enthält ungültige Zeichen.",
-        noFileSelected: "Keine Datei ausgewählt.",
-        invalidFileType: "Ungültiger Dateityp. Bitte ein Bild auswählen.",
-        barcodeDetected: "Barcode erkannt",
-        barcodeNotDetected: "Kein Barcode erkannt.",
-        imageLoadError: "Fehler beim Laden des Bildes.",
-        fileReadError: "Fehler beim Lesen der Datei.",
-        processing: "Bild wird verarbeitet..."
-    },
-    it: {
-        title: "Decodificatore Data di Produzione",
-        selectManufacturer: "Seleziona produttore:",
-        enterDateCode: "Inserisci codice data:",
-        decodeButton: "Decodifica",
-        scanBarcodeButton: "Scansiona codice a barre",
-        charCount: "Numero di caratteri: ",
-        result: "Risultato:",
-        decodingBoxes: "Decodifica del codice:",
-        invalidFormat: "Formato data non valido per {manufacturer}.",
-        invalidCharacters: "Il codice data contiene caratteri non validi.",
-        noFileSelected: "Nessun file selezionato.",
-        invalidFileType: "Tipo di file non valido.",
-        barcodeDetected: "Codice a barre rilevato",
-        barcodeNotDetected: "Codice a barre non rilevato.",
-        imageLoadError: "Errore nel caricamento dell'immagine.",
-        fileReadError: "Errore nella lettura del file.",
-        processing: "Elaborazione immagine..."
-    },
-    pt: {
-        title: "Decodificador de Data de Produção",
-        selectManufacturer: "Selecionar fabricante:",
-        enterDateCode: "Inserir código de data:",
-        decodeButton: "Decodificar",
-        scanBarcodeButton: "Escanear código de barras",
-        charCount: "Número de caracteres: ",
-        result: "Resultado:",
-        decodingBoxes: "Decodificação do código:",
-        invalidFormat: "Formato de data inválido para {manufacturer}.",
-        invalidCharacters: "Código contém caracteres inválidos.",
-        noFileSelected: "Nenhum arquivo selecionado.",
-        invalidFileType: "Tipo de arquivo inválido.",
-        barcodeDetected: "Código de barras detectado",
-        barcodeNotDetected: "Código de barras não detectado.",
-        imageLoadError: "Erro ao carregar imagem.",
-        fileReadError: "Erro ao ler arquivo.",
-        processing: "Processando imagem..."
-    },
-    ru: {
-        title: "Декодер Даты Производства",
-        selectManufacturer: "Выберите производителя:",
-        enterDateCode: "Введите код даты:",
-        decodeButton: "Декодировать",
-        scanBarcodeButton: "Сканировать штрихкод",
-        charCount: "Количество символов: ",
-        result: "Результат:",
-        decodingBoxes: "Расшифровка кода:",
-        invalidFormat: "Неверный формат даты для {manufacturer}.",
-        invalidCharacters: "Код содержит недопустимые символы.",
-        noFileSelected: "Файл не выбран.",
-        invalidFileType: "Недопустимый тип файла.",
-        barcodeDetected: "Штрихкод обнаружен",
-        barcodeNotDetected: "Штрихкод не обнаружен.",
-        imageLoadError: "Ошибка загрузки изображения.",
-        fileReadError: "Ошибка чтения файла.",
-        processing: "Обработка изображения..."
-    },
-    zh: {
-        title: "生产日期解析器",
-        selectManufacturer: "选择制造商:",
-        enterDateCode: "输入日期代码:",
-        decodeButton: "解析",
-        scanBarcodeButton: "扫描条码",
-        charCount: "字符数: ",
-        result: "结果:",
-        decodingBoxes: "代码解析:",
-        invalidFormat: "{manufacturer} 的日期格式无效。",
-        invalidCharacters: "日期代码包含无效字符。",
-        noFileSelected: "未选择文件。",
-        invalidFileType: "无效的文件类型。",
-        barcodeDetected: "检测到条码",
-        barcodeNotDetected: "未检测到条码。",
-        imageLoadError: "图像加载错误。",
-        fileReadError: "文件读取错误。",
-        processing: "正在处理图像..."
-    }
-};
+  </div>
+</div>
 
+<script>
+/* ============ Static reference data (mirrors the company website) ============ */
+const POSITIONS_LIST = [ "מנכ\"ל","סמנכ\"לית כספים","סמנכ\"ל אלקטרומכאניקה","סמנכ\"ל תפעול","סמנכ\"ל פיתוח עסקי","סמנכ\"ל מכירות",
+    "סמנכ\"ל הנדסה","סמנכ\"ל החטיבה","סמנכ\"ל החטיבה הגלובלית","מנהלת משאבי אנוש","מנהלת מרקום","מנהל מערכות מידע",
+    "אחראי לוגיסטיקה","מנהל אבטחת איכות","מנהלת חשבונות","קניינית","מנהל מכירות רוטרוניק","מהנדס מכירות","מת\"לית RF",
+    "מנהל טכני","FAE","מתאמת מכירות","מכירות פנים","מנהל תיקי לקוחות","מנהלת תיקי לקוחות","מנהלת רכש","מנהל רכש",
+    "ס.מנהל רכש","מנהל מחסן","ס.מ.מחסן","מנהל מחסן קבלה","מחסן קבלה","אחראי דלפק","מחסנאי","דסק קבלה","צוות 10",
+    "צוות 20","צוות 30","צוות 40","צוות 50","משרד","מ.גלובל"
+];
+const EXTENSIONS_LIST = [
+    "3000","3005","3006","3007","3008","3010","3013","3015","3020","3022","3023","3024","3030",
+    "3033","3035","3040","3041","3042","3043","3060","3061","3062","3065","3066","3067","3070",
+    "3075","3077","3078","3080","3081","3082","3083","3085","3086","3090","3091","3092","3093",
+    "3101","3106","3108","3109","3110","3112","3113","3115","3120","3121","3124","3128","3132",
+    "3133","3134","3135","3136","3137","3139","3140","3141","3142","3143","3144","3145","3146","3147","3148"
+];
+const SALES_MAIN = "מכירות";
+const SALES_TEAMS = [ "מכירות - צוות 10", "מכירות - צוות 20", "מכירות - צוות 30", "מכירות - צוות 40", "מכירות - צוות 50" ];
+const DEPARTMENTS_RIGHT = ["הנהלה ומינהלה", "הנהלת חשבונות", "רוטרוניק", "רכש", "הנדסה", "RF ומיקרוגל"];
+const OTHER_LEFT = ["גלובל", "מחסן"];
 
-        // Character count update
-        document.getElementById('dateCode').addEventListener('input', function() {
-            const charCount = this.value.length;
-            const language = document.getElementById('language').value;
-            document.getElementById('charCount').innerText = `${translations[language].charCount}${charCount}`;
-        });
+const ACCESS_TOKEN = 'b054aa1a-5c4e-441d-952e-cdab1dd19cc4';
+const API_URL = 'https://api.myjson.online/v1/records/a842d723-4898-4e89-b968-abd89bf75929';
+const EDIT_PASSWORD = 'cidev123';
 
-        // BELLWETHER decoding function
-        function decodeBellwether(dateCode) {
-            if (dateCode.length === 5 || dateCode.length === 9) {
-                const yearCode = dateCode.charAt(0);
-                const monthCode = dateCode.charAt(1).toLowerCase();
-                const year = 2020 + parseInt(yearCode, 10);
-                const monthMap = {
-                    'a': '01', 'b': '02', 'c': '03', 'd': '04', 'e': '05',
-                    'f': '06', 'g': '07', 'h': '08', 'i': '09', 'j': '10',
-                    'k': '11', 'n': '12'
-                };
-                const month = monthMap[monthCode];
-                if (year && month) {
-                    return { year, month };
-                }
-            }
-            return null;
-        }
+let contacts = [];
+let favorites = JSON.parse(localStorage.getItem('phonebook_favorites_v3') || '[]');
+let dynamicDepartments = JSON.parse(localStorage.getItem('phonebook_dynamic_departments_v1') || '[]');
+let activeDeptFilter = '';
+let openDepts = new Set();
+let passwordResolve = null;
 
-        // Unified decodeDate function
-        function decodeDate(manufacturer, dateCode) {
-            const language = document.getElementById('language').value;
-            let result = '';
-   if (manufacturer === 'bourns') {
-    // פורמט 5 תווים: אות (מפעל) + שנה(2) + שבוע(2), לדוג' S2132
-    if (/^[A-Z]\d{4}$/.test(dateCode)) {
-        const plant = dateCode.charAt(0);
-        const year = 2000 + parseInt(dateCode.substring(1, 3), 10);
-        const week = parseInt(dateCode.substring(3, 5), 10);
-        result = `${translations[language].result} מפעל ${plant}, שבוע ${week}, שנה ${year}`;
-    }
-    // פורמט 8 תווים: שנה(4) + חודש(2) + יום(2), לדוג' 20231205
-    else if (/^\d{8}$/.test(dateCode)) {
-        const year = dateCode.substring(0, 4);
-        const month = dateCode.substring(4, 6);
-        const day = dateCode.substring(6, 8);
-        result = `${translations[language].result} ${day}-${month}-${year}`;
-    }
-    // פורמט 6 תווים: שנה(2) + חודש(2) + יום(2), לדוג' 231105
-    else if (/^\d{6}$/.test(dateCode)) {
-        const year = 2000 + parseInt(dateCode.substring(0, 2), 10);
-        const month = dateCode.substring(2, 4);
-        const day = dateCode.substring(4, 6);
-        result = `${translations[language].result} ${day}-${month}-${year}`;
-    }
-    // פורמט 2 תווים: שנה + אות שבוע
-    else if (/^\d[A-Z]$/.test(dateCode)) {
-        const year = 2020 + parseInt(dateCode.charAt(0), 10);
-        const weekMap = {
-            'A': '1-2', 'B': '3-4', 'C': '5-6', 'D': '7-8', 'E': '9-10', 'F': '11-12',
-            'G': '13-14', 'H': '15-16', 'J': '17-18', 'K': '19-20', 'L': '21-22',
-            'M': '23-24', 'N': '25-26', 'P': '29-30', 'Q': '31-32', 'R': '33-34',
-            'S': '35-36', 'T': '37-38', 'U': '39-40', 'V': '41-42', 'W': '43-44',
-            'X': '45-46', 'Y': '47-48', 'Z': '49-50'
-        };
-        const week = weekMap[dateCode.charAt(1).toUpperCase()] || "?";
-        result = `${translations[language].result} שנה ${year}, שבוע ${week}`;
-    }
-    // פורמט 3 תווים: שנה + שבוע (2 ספרות)
-    else if (/^\d{3}$/.test(dateCode)) {
-        const year = 2020 + parseInt(dateCode.charAt(0), 10);
-        const week = parseInt(dateCode.substring(1, 3), 10);
-        if (week >= 1 && week <= 53) {
-            result = `${translations[language].result} שבוע ${week}, שנה ${year}`;
-        } else {
-            result = translations[language].invalidFormat.replace('{manufacturer}', 'BOURNS');
-        }
-    }
-    // פורמט 4 תווים: שנה(1) + יום בשנה (3), לדוג' 1197
-    else if (/^\d{4}$/.test(dateCode)) {
-        const year = 2020 + parseInt(dateCode.charAt(0), 10);
-        const dayOfYear = parseInt(dateCode.substring(1, 4), 10);
-        if (dayOfYear >= 1 && dayOfYear <= 366) {
-            const prodDate = new Date(year, 0);
-            prodDate.setDate(dayOfYear);
-            const dd = String(prodDate.getDate()).padStart(2, '0');
-            const mm = String(prodDate.getMonth() + 1).padStart(2, '0');
-            result = `${translations[language].result} ${dd}-${mm}-${year}`;
-        } else {
-            result = translations[language].invalidFormat.replace('{manufacturer}', 'BOURNS');
-        }
-    }
-    // פורמט 4 תווים: שנה(2) + שבוע(2), לדוג' 2132 (יחשב רק אם ה־day בשנה לא הגיוני)
-    else if (/^\d{4}$/.test(dateCode)) {
-        const year = 2000 + parseInt(dateCode.substring(0, 2), 10);
-        const week = parseInt(dateCode.substring(2, 4), 10);
-        if (week >= 1 && week <= 53) {
-            result = `${translations[language].result} שבוע ${week}, שנה ${year}`;
-        } else {
-            result = translations[language].invalidFormat.replace('{manufacturer}', 'BOURNS');
-        }
-    }
-    else {
-        result = translations[language].invalidFormat.replace('{manufacturer}', 'BOURNS');
-    }
-    return result;
-}
-
-
-            if (manufacturer === 'bellwether') {
-                const decodedDate = decodeBellwether(dateCode);
-                result = decodedDate ? `${translations[language].result} ${decodedDate.month}-${decodedDate.year}` : translations[language].invalidFormat.replace('{manufacturer}', 'BELLWETHER');
-            } else if (manufacturer === 'gigadevice') {
-                const decodedDate = decodeGigaDevice(dateCode);
-                result = decodedDate ? `${translations[language].result} ${decodedDate.month}-${decodedDate.year}` : translations[language].invalidFormat.replace('{manufacturer}', 'GIGADEVICE');
-            } else if (manufacturer === 'eaton') {
-                const decodedDate = decodeEaton(dateCode);
-                result = decodedDate ? `${translations[language].result} ${translations[language].month} ${decodedDate.month}, ${decodedDate.year}` : translations[language].invalidFormat.replace('{manufacturer}', 'EATON');
-            } else if (manufacturer === 'panasonic') {
-                if (dateCode.length === 23) {
-                    const yearCode = dateCode.charAt(5);
-                    const monthCode = dateCode.charAt(6);
-                    const year = 2020 + parseInt(yearCode, 10);
-                    const monthMap = {
-                        '1': '01', '2': '02', '3': '03', '4': '04', '5': '05',
-                        '6': '06', '7': '07', '8': '08', '9': '09', '0': '10',
-                        'O': '10', 'N': '11', 'D': '12'
-                    };
-                    const month = monthMap[monthCode];
-                    result = (year && month) ? `${translations[language].result} ${month}-${year}` : translations[language].invalidFormat.replace('{manufacturer}', 'PANASONIC');
-                } else if (dateCode.length === 12) {
-                    const yearCode = dateCode.charAt(1);
-                    const monthCode = dateCode.charAt(2);
-                    const year = 2020 + parseInt(yearCode, 10);
-                    const monthMap = {
-                        '1': '01', '2': '02', '3': '03', '4': '04', '5': '05',
-                        '6': '06', '7': '07', '8': '08', '9': '09', '0': '10',
-                        'O': '10', 'N': '11', 'D': '12'
-                    };
-                    const month = monthMap[monthCode];
-                    result = (year && month) ? `${translations[language].result} ${month}-${year}` : translations[language].invalidFormat.replace('{manufacturer}', 'PANASONIC');
-                } else if ([4, 5, 6, 7, 8].includes(dateCode.length)) {
-                    const yearCode = dateCode.charAt(dateCode.length === 4 ? 0 : dateCode.length === 5 ? 0 : dateCode.length === 6 ? 0 : 2);
-                    const weekCode = dateCode.length === 4 ? dateCode.charAt(1) : dateCode.substring(dateCode.length === 5 ? 1 : 3, dateCode.length === 5 ? 3 : 5);
-                    const decoded = dateCode.length === 4 ? decodePanasonicMonth(yearCode, weekCode) : decodePanasonicWeek(yearCode, weekCode);
-                    result = decoded ? `${translations[language].result} ${translations[language].month} ${decoded.month}, ${decoded.year}` : translations[language].invalidFormat.replace('{manufacturer}', 'PANASONIC');
-                } else {
-                    result = translations[language].invalidFormat.replace('{manufacturer}', 'PANASONIC');
-                }
-           } else if (manufacturer === 'samsung') {
-    if (dateCode.length === 7) {
-        const yearCode = dateCode.charAt(1);
-        const monthCode = dateCode.charAt(2);
-        const yearMap = {
-            'K': '2024', 'L': '2025', 'M': '2026', 'N': '2027', 'O': '2029', 'P': '2030',
-            'Q': '2004', 'R': '2005', 'S': '2006', 'T': '2007', 'U': '2008',
-            'V': '2009', 'W': '2010', 'X': '2011', 'Y': '2012', 'Z': '2013',
-            'A': '2014', 'B': '2015', 'C': '2016', 'D': '2017', 'E': '2018',
-            'F': '2019', 'G': '2020', 'H': '2021', 'I': '2022', 'J': '2023'
-        };
-        const monthMap = {
-            '1': '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06',
-            '7': '07', '8': '08', '9': '09', 'A': '10', 'B': '11', 'C': '12'
-        };
-        const year = yearMap[yearCode] || 'unknown';
-        const month = monthMap[monthCode] || 'unknown';
-        result = (year !== 'unknown' && month !== 'unknown') 
-            ? `${translations[language].result} ${month}-${year}`
-            : translations[language].invalidFormat.replace('{manufacturer}', 'SAMSUNG');
-    } else {
-        result = translations[language].invalidFormat.replace('{manufacturer}', 'SAMSUNG');
-    }
-
-            } else if (manufacturer === 'yageo') {
-                if (dateCode.length === 4) {
-                    const yearCode = dateCode.substring(0, 2);
-                    const weekCode = dateCode.substring(2, 4);
-                    const decoded = decodeYageoWeek(yearCode, weekCode);
-                    result = decoded 
-                        ? `${translations[language].result} ${translations[language].month} ${decoded.month}, ${decoded.year}` 
-                        : translations[language].invalidFormat.replace('{manufacturer}', 'YAGEO');
-                } else if (dateCode.length === 15) {
-                    const yearCode = dateCode.charAt(1);
-                    const monthCode = dateCode.substring(2, 4);
-                    const year = 2020 + parseInt(yearCode, 10);
-                    const month = monthCode.padStart(2, '0');
-                    if (parseInt(month) >= 1 && parseInt(month) <= 12) {
-                        result = `${translations[language].result} ${month}-${year}`;
-                    } else {
-                        result = translations[language].invalidFormat.replace('{manufacturer}', 'YAGEO');
-                    }
-                } else {
-                    result = translations[language].invalidFormat.replace('{manufacturer}', 'YAGEO');
-                }
-            } else if (manufacturer === 'viking') {
-                if (dateCode.length === 6) {
-                    const year = '20' + dateCode.substring(0, 2);
-                    const month = dateCode.substring(2, 4);
-                    const day = dateCode.substring(4, 6);
-                    result = (parseInt(month) >= 1 && parseInt(month) <= 12 && parseInt(day) >= 1 && parseInt(day) <= 31)
-                        ? `${translations[language].result} ${day}-${month}-${year}`
-                        : translations[language].invalidFormat.replace('{manufacturer}', 'VIKING');
-                } else {
-                    result = translations[language].invalidFormat.replace('{manufacturer}', 'VIKING');
-                }
-            } else if (manufacturer === 'everlight') {
-                if (dateCode.length === 19) {
-                    const year = `20${dateCode.substring(1, 3)}`;
-                    const month = dateCode.substring(3, 5);
-                    const day = dateCode.substring(5, 7);
-                    if (parseInt(month) >= 1 && parseInt(month) <= 12 && parseInt(day) >= 1 && parseInt(day) <= 31) {
-                        result = `${translations[language].result} ${day}/${month}/${year}`;
-                    } else {
-                        result = translations[language].invalidFormat.replace('{manufacturer}', 'EVERLIGHT');
-                    }
-                } else {
-                    result = translations[language].invalidFormat.replace('{manufacturer}', 'EVERLIGHT');
-                }
-           } else if (manufacturer === 'omron') {
-            if (dateCode.length === 2) {
-                const monthCode = dateCode.charAt(0);
-                const yearCode = dateCode.charAt(1);
-                const monthMap = {
-                    '1': '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06',
-                    '7': '07', '8': '08', '9': '09', 'X': '10', 'Y': '11', 'Z': '12'
-                };
-                const year = `202${yearCode}`;
-                const month = monthMap[monthCode];
-                result = (year && month) ? `${translations[language].result} ${month}-${year}` : translations[language].invalidFormat.replace('{manufacturer}', 'OMRON');
-            } else if (dateCode.length === 3) {
-                const dayCode = dateCode.charAt(0);
-                const monthCode = dateCode.charAt(1);
-                const yearCode = dateCode.charAt(2);
-                const dayMap = {
-                    '1': '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06',
-                    '7': '07', '8': '08', '9': '09',
-                    'A': '10', 'B': '11', 'C': '12', 'D': '13', 'E': '14', 'F': '15',
-                    'G': '16', 'H': '17', 'J': '18', 'K': '19', 'L': '20', 'M': '21',
-                    'N': '22', 'P': '23', 'R': '24', 'S': '25', 'T': '26', 'U': '27',
-                    'V': '28', 'W': '29', 'X': '30', 'Y': '31'
-                };
-                const monthMap = {
-                    '1': '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06',
-                    '7': '07', '8': '08', '9': '09', 'X': '10', 'Y': '11', 'Z': '12'
-                };
-                const year = `202${yearCode}`;
-                const month = monthMap[monthCode];
-                const day = dayMap[dayCode];
-                result = (year && month && day) ? `${translations[language].result} DIP SWITCH AND OPTO SWITCH ${day}-${month}-${year}` : translations[language].invalidFormat.replace('{manufacturer}', 'OMRON');
-            } else if (dateCode.length === 4) { // New DDMY format
-                const monthCode = dateCode.charAt(2).toLowerCase();
-                const yearCode = dateCode.charAt(3);
-                const year = 2020 + parseInt(yearCode, 10);
-                const monthMap = {
-                    '1': '01', '2': '02', '3': '03', '4': '04', '5': '05',
-                    '6': '06', '7': '07', '8': '08', '9': '09',
-                    'x': '10', 'y': '11', 'z': '12'
-                };
-                const month = monthMap[monthCode];
-                if (month && !isNaN(year)) {
-                    result = `${translations[language].result} ${month}-${year}`;
-                } else {
-                    result = translations[language].invalidFormat.replace('{manufacturer}', 'OMRON');
-                }
-            } else if ([6, 7].includes(dateCode.length)) {
-                const day = dateCode.substring(0, 2);
-                const monthCode = dateCode.charAt(2);
-                const yearCode = dateCode.charAt(3);
-                const monthMap = {
-                    '1': '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06',
-                    '7': '07', '8': '08', '9': '09', 'X': '10', 'Y': '11', 'Z': '12'
-                };
-                const year = 2020 + parseInt(yearCode, 10);
-                const month = monthMap[monthCode];
-                result = (year && month && parseInt(day) >= 1 && parseInt(day) <= 31) ? `${translations[language].result} ${day}-${month}-${year}` : translations[language].invalidFormat.replace('{manufacturer}', 'OMRON');
-            } else if (dateCode.length === 12) {
-                const yearCode = dateCode.charAt(1);
-                const monthCode = dateCode.charAt(2);
-                const yearMap = {
-                    '1': 2021, '2': 2022, '3': 2023, '4': 2024, '5': 2025,
-                    '6': 2026, '7': '2027', '8': '2028', '9': 2029
-                };
-                const monthMap = {
-                    '1': '01', '2': '02', '3': '03', '4': '04', '5': '05', '6': '06',
-                    '7': '07', '8': '08', '9': '09', 'O': '10', 'N': '11', 'D': '12'
-                };
-                const year = yearMap[yearCode];
-                const month = monthMap[monthCode];
-                result = (year && month) ? `${translations[language].result} ${month}/${year}` : translations[language].invalidFormat.replace('{manufacturer}', 'OMRON');
-            } else {
-                result = translations[language].invalidFormat.replace('{manufacturer}', 'OMRON');
-            }
-            } else if (manufacturer === 'hitano') {
-                const decodedDate = decodeHitano(dateCode);
-                result = (decodedDate && decodedDate.month && decodedDate.day) 
-                    ? `${translations[language].result} ${decodedDate.day}-${decodedDate.month}-${decodedDate.year}` 
-                    : translations[language].invalidFormat.replace('{manufacturer}', 'HITANO');
-          } else if (manufacturer === 'conquer') {
-    if (dateCode.length === 9) {
-        const yearCode = dateCode.charAt(3);
-        const monthCode = dateCode.substring(4, 6);
-        const year = 2020 + parseInt(yearCode);
-        const month = monthCode.padStart(2, '0');
-        result = (parseInt(month) >= 1 && parseInt(month) <= 12) 
-            ? `${translations[language].result} ${month}-${year}` 
-            : translations[language].invalidFormat.replace('{manufacturer}', 'CONQUER');
-    } else if (dateCode.length === 31 && dateCode.includes('*')) {
-        const datePart = dateCode.split('*').pop();
-        if (datePart && datePart.length === 6) {
-            const year = '20' + datePart.substring(0, 2);
-            const month = datePart.substring(2, 4);
-            const day = datePart.substring(4, 6);
-            result = (parseInt(month) >= 1 && parseInt(month) <= 12 && parseInt(day) >= 1 && parseInt(day) <= 31) 
-                ? `${translations[language].result} ${day}-${month}-${year}` 
-                : translations[language].invalidFormat.replace('{manufacturer}', 'CONQUER');
-        } else {
-            result = translations[language].invalidFormat.replace('{manufacturer}', 'CONQUER');
-        }
-    } else if (dateCode.length === 10) {
-        // פורמט: 3 תווים (קידומת) + 1 תו שנה + 2 תווים חודש + 2 תווים יום + 2 תווים נוספים
-        // דוגמה: SET5100620 = SET + 5(2025) + 10(אוקטובר) + 06(יום 6) + 20
-        const yearCode = dateCode.charAt(3);
-        const month = dateCode.substring(4, 6);
-        const day = dateCode.substring(6, 8);
-        const year = 2020 + parseInt(yearCode);
-        
-        if (parseInt(month) >= 1 && parseInt(month) <= 12 && parseInt(day) >= 1 && parseInt(day) <= 31) {
-            result = `${translations[language].result} ${day}-${month}-${year}`;
-        } else {
-            result = translations[language].invalidFormat.replace('{manufacturer}', 'CONQUER');
-        }
-    } else {
-        result = translations[language].invalidFormat.replace('{manufacturer}', 'CONQUER');
-    }
-            } else if (manufacturer === 'unisonic') {
-                if (dateCode.length === 4) {
-                    const yearCode = dateCode.charAt(0);
-                    const monthCode = dateCode.charAt(1);
-                    const yearMap = {
-                        'N': '2020', 'O': '2021', 'P': '2022', 'Q': '2023', 'R': '2024',
-                        'S': '2025', 'T': '2026', 'U': '2027', 'V': '2028', 'W': '2029'
-                    };
-                    const monthMap = {
-                        'A': '01', 'B': '02', 'C': '03', 'D': '04', 'E': '05', 'F': '06',
-                        'G': '07', 'H': '08', 'J': '09', 'K': '10', 'L': '11', 'M': '12'
-                    };
-                    const year = yearMap[yearCode];
-                    const month = monthMap[monthCode];
-                    result = (year && month) 
-                        ? `${translations[language].result} ${month}-${year}` 
-                        : translations[language].invalidFormat.replace('{manufacturer}', 'UNISONIC');
-                } else {
-                    result = translations[language].invalidFormat.replace('{manufacturer}', 'UNISONIC');
-                }
-           } else if (manufacturer === 'delta') {
-    // פורמט 19 תווים
-    if (dateCode.length === 19) {
-        const yearCode = dateCode.substring(10, 12);
-        const weekCode = dateCode.substring(12, 14);
-        const year = parseInt(yearCode, 10) + 2000;
-        const week = parseInt(weekCode, 10);
-        if (week >= 1 && week <= 52 && !isNaN(year)) {
-            const month = Math.min(Math.ceil(week / 4), 12);
-            const monthPadded = String(month).padStart(2, '0');
-            result = `${translations[language].result} ${monthPadded}-${year}`;
-        } else {
-            result = translations[language].invalidFormat.replace('{manufacturer}', 'DELTA');
-        }
-    } 
-    // פורמט Medical Power Supply - 11 תווים (MMMXYMDSSSS)
-    else if (dateCode.length === 11) {
-        // KOH-D27700XP  לדוג'
-        const yearCode = dateCode.charAt(4);   // Y
-        const monthCode = dateCode.charAt(5);  // M
-        const year = '202' + yearCode;         // 2022 וכדומה
-        const month = monthCode.padStart(2, '0');
-        result = `${translations[language].result} ${month}-${year}`;
-    } 
-    else {
-        result = translations[language].invalidFormat.replace('{manufacturer}', 'DELTA');
-    }
-} else {
-    result = translations[language].invalidFormat.replace('{manufacturer}', manufacturer.toUpperCase());
-}
-return result;
-}
-
-        // Original decoding functions
-        function decodeEaton(dateCode) {
-            if (dateCode.length === 3) {
-                const yearMap = {
-                    'A': 2017, 'B': 2018, 'C': 2019, 'D': 2020,
-                    'E': 2021, 'F': 2022, 'G': 2023, 'H': 2024,
-                    'J': 2025, 'K': 2026, 'L': 2027, 'M': 2028,
-                    'N': 2029
-                };
-                const year = yearMap[dateCode.charAt(0)];
-                const week = parseInt(dateCode.substring(1, 3), 10);
-                const month = Math.min(Math.ceil(week / 4), 12);
-                if (year && week >= 1 && week <= 52) {
-                    return { year, month };
-                }
-            }
-            return null;
-        }
-
-        function decodePanasonicWeek(yearCode, weekCode) {
-            const year = 2020 + parseInt(yearCode, 10);
-            const week = parseInt(weekCode, 10);
-            const month = Math.min(Math.ceil(week / 4), 12);
-            return { year, month };
-        }
-
-        function decodePanasonicMonth(yearCode, monthCode) {
-            const year = 2020 + parseInt(yearCode, 10);
-            const month = parseInt(monthCode, 10);
-            return { year, month };
-        }
-
-        function decodeGigaDevice(dateCode) {
-            if (dateCode.length === 6) {
-                const year = '20' + dateCode.substring(2, 4);
-                const week = parseInt(dateCode.substring(4, 6), 10);
-                if (week >= 1 && week <= 52) {
-                    const firstDayOfYear = new Date(year, 0, 1);
-                    const dayOfWeek = firstDayOfYear.getDay();
-                    const daysToAdd = (week - 1) * 7 - dayOfWeek + 1;
-                    const productionDate = new Date(firstDayOfYear.setDate(firstDayOfYear.getDate() + daysToAdd));
-                    const month = String(productionDate.getMonth() + 1).padStart(2, '0');
-                    return { month, year };
-                }
-            }
-            return null;
-        }
-
-        function decodeHitano(dateCode) {
-            const monthMap = {
-                'A': '01', 'B': '02', 'C': '03', 'D': '04', 'E': '05',
-                'F': '06', 'G': '07', 'H': '08', 'I': '09', 'J': '10',
-                'K': '11', 'L': '12'
-            };
-            let year, month, day;
-            if (dateCode.length === 11) {
-                year = 2000 + parseInt(dateCode.substring(4, 6), 10);
-                const monthCode = dateCode.charAt(6).toUpperCase();
-                month = monthMap[monthCode];
-                day = null; // אין יום בפורמט הזה
-            } else if (dateCode.length === 12) {
-                year = 2000 + parseInt(dateCode.substring(4, 6), 10);
-                month = monthMap[dateCode.charAt(6)];
-                day = dateCode.substring(7, 9);
-            } else if (dateCode.length === 15) {
-                year = parseInt(dateCode.substring(1, 5), 10);
-                month = dateCode.substring(5, 7);
-                day = dateCode.substring(7, 9);
-            } else {
-                return null;
-            }
-            return { year, month, day };
-        }
-
-        function decodeYageoWeek(yearCode, weekCode) {
-            const year = '20' + yearCode;
-            const week = parseInt(weekCode, 10);
-            const month = Math.min(Math.ceil(week / 4), 12);
-            return { year, month };
-        }
-
-        const decodingMap = {
-            yageo: {
-                lengths: {
-                    4: {
-                        map: {
-                            1: 'Year',
-                            2: 'Year',
-                            3: 'Week',
-                            4: 'Week'
-                        }
-                    },
-                    15: {
-                        map: {
-                            2: 'Year',
-                            3: 'Month',
-                            4: 'Month'
-                        }
-                    }
-                }
-            },
-            omron: {
-                lengths: {
-                    6: {
-                        map: {
-                            1: 'Day',
-                            2: 'Day',
-                            3: 'Month',
-                            4: 'Year'
-                        }
-                    },
-                    7: {
-                        map: {
-                            1: 'Day',
-                            2: 'Day',
-                            3: 'Month',
-                            4: 'Year'
-                        }
-                    },
-                    12: {
-                        map: {
-                            2: 'Year',
-                            3: 'Month'
-                        }
-                    }
-                }
-            },
-            hitano: {
-                lengths: {
-                    12: {
-                        map: {
-                            5: 'Year',
-                            6: 'Year',
-                            7: 'Month',
-                            8: 'Day',
-                            9: 'Day'
-                        }
-                    }
-                }
-            },
-            eaton: {
-                lengths: {
-                    3: {
-                        map: {
-                            1: 'Year',
-                            2: 'Week',
-                            3: 'Week'
-                        }
-                    }
-                }
-            },
-            gigadevice: {
-                lengths: {
-                    6: {
-                        map: {
-                            3: 'Year',
-                            4: 'Year',
-                            5: 'Week',
-                            6: 'Week'
-                        }
-                    }
-                }
-            },
-            conquer: {
-                lengths: {
-                    9: {
-                        map: {
-                            4: 'Year',
-                            5: 'Month',
-                            6: 'Month'
-                        }
-                    },
-                    10: {
-                        map: {
-                            4: 'Year',
-                            5: 'Month',
-                            6: 'Month'
-                        }
-                    }
-                }
-            },
-            samsung: {
-    lengths: {
-        7: {
-            map: {
-                2: 'Year',
-                3: 'Month'
-            }
-        }
-    }
- },
-
-            panasonic: {
-                lengths: {
-                    23: {
-                        map: {
-                            6: 'Year',
-                            7: 'Month'
-                        }
-                    },
-                    12: {
-                        map: {
-                            2: 'Year',
-                            3: 'Month'
-                        }
-                    },
-                    4: {
-                        map: {
-                            1: 'Year',
-                            2: 'Month'
-                        }
-                    }
-                }
-            },
-            bellwether: {
-                lengths: {
-                    5: {
-                        map: {
-                            1: 'Year',
-                            2: 'Month'
-                        }
-                    },
-                    9: {
-                        map: {
-                            1: 'Year',
-                            2: 'Month'
-                        }
-                    }
-                }
-            },
-            viking: {
-                lengths: {
-                    6: {
-                        map: {
-                            1: 'Year',
-                            2: 'Year',
-                            3: 'Month',
-                            4: 'Month',
-                            5: 'Day',
-                            6: 'Day'
-                        }
-                    }
-                }
-            },
-            unisonic: {
-                lengths: {
-                    4: {
-                        map: {
-                            1: 'Year',
-                            2: 'Month'
-                        }
-                    }
-                }
-            },
-            everlight: {
-                lengths: {
-                    19: {
-                        map: {
-                            2: 'Year',
-                            3: 'Year',
-                            4: 'Month',
-                            5: 'Month',
-                            6: 'Day',
-                            7: 'Day'
-                        }
-                    }
-                }
-            },
-           delta: {
-    lengths: {
-        19: {
-            map: {
-                11: 'Year',
-                12: 'Year',
-                13: 'Week',
-                14: 'Week'
-            }
-        },
-        11: { // פורמט Medical Power Supply (MMMXYMDSSSS)
-            map: {
-                5: 'Year',
-                6: 'Month'
-            }
-        }
-    }
-},
-        bourns: {
-        lengths: {
-            5: {
-                map: {
-                    1: 'Plant',
-                    2: 'Year',
-                    3: 'Year',
-                    4: 'Week',
-                    5: 'Week'
-                }
-            },
-            8: {
-                map: {
-                    1: 'Year',
-                    2: 'Year',
-                    3: 'Year',
-                    4: 'Year',
-                    5: 'Month',
-                    6: 'Month',
-                    7: 'Day',
-                    8: 'Day'
-                }
-            },
-            6: {
-                map: {
-                    1: 'Year',
-                    2: 'Year',
-                    3: 'Month',
-                    4: 'Month',
-                    5: 'Day',
-                    6: 'Day'
-                }
-            },
-            2: {
-                map: {
-                    1: 'Year',
-                    2: 'WeekLetter'
-                }
-            },
-            3: {
-                map: {
-                    1: 'Year',
-                    2: 'Week',
-                    3: 'Week'
-                }
-            },
-            // שים לב – כאן מערך עם 2 פורמטים עבור 4 תווים
-            4: [
-                { // פורמט 1: שנה(1) + יום בשנה (3), לדוג' 1197
-                    map: {
-                        1: 'Year',
-                        2: 'DayOfYear',
-                        3: 'DayOfYear',
-                        4: 'DayOfYear'
-                    }
-                },
-                { // פורמט 2: שנה(2) + שבוע(2), לדוג' 2132
-                    map: {
-                        1: 'Year',
-                        2: 'Year',
-                        3: 'Week',
-                        4: 'Week'
-                    }
-                }
-            ]
-        }
-    }
-};
-function showDecodingBoxesNew(dateCode, supplier) {
-    const existingContainer = document.getElementById("decodingBoxes");
-    existingContainer.innerHTML = "";
-    const supplierConfig = decodingMap[supplier];
-    if (!supplierConfig) {
-        const message = document.createElement("p");
-        message.textContent = translations[document.getElementById('language').value].noDecodingMap || "אין מיפוי זמין להצגת מבנה הפענוח.";
-        existingContainer.appendChild(message);
-        return;
-    }
-    let lengthConfig = supplierConfig.lengths[dateCode.length];
-    let map;
-
-    // טיפול בפורמטים מרובים (מערך)
-    if (Array.isArray(lengthConfig)) {
-        // זיהוי דינמי לפורמט המתאים (bourns דוג')
-        // פורמט 1: שנה(1) + יום בשנה (3), לדוג' 1197
-        // פורמט 2: שנה(2) + שבוע(2), לדוג' 2412
-        if (/^\d{4}$/.test(dateCode)) {
-            const firstMap = lengthConfig[0].map;
-            const secondMap = lengthConfig[1].map;
-            // בדוק האם זה יום בשנה או שבוע (בהתאם למפרש שלך)
-            if (parseInt(dateCode.substring(1, 4), 10) > 0 && parseInt(dateCode.substring(1, 4), 10) <= 366) {
-                map = firstMap;
-            } else {
-                map = secondMap;
-            }
-        }
-    } else if (lengthConfig) {
-        map = lengthConfig.map;
-    } else {
-        const message = document.createElement("p");
-        message.textContent = translations[document.getElementById('language').value].noDecodingForLength || `אין פענוח למספר תווים ${dateCode.length} עבור ספק זה.`;
-        existingContainer.appendChild(message);
-        return;
-    }
-
-    // הצגה גרפית
-    for (let i = 1; i <= dateCode.length; i++) {
-        const char = dateCode[i - 1];
-        const label = map && map[i] ? map[i] : '';
-        const box = document.createElement("div");
-        box.innerHTML = `
-            <div style="font-size: 18px; font-weight: bold;">${char}</div>
-            <small style="font-size: 12px; color: gray;">${label}</small>
-        `;
-        box.setAttribute('data-label', label);
-        box.style.border = "1px solid black";
-        box.style.padding = "10px";
-        box.style.margin = "5px";
-        box.style.textAlign = "center";
-        box.style.width = "35px";
-        box.style.height = "40px";
-        box.style.display = "flex";
-        box.style.flexDirection = "column";
-        box.style.justifyContent = "center";
-        box.style.alignItems = "center";
-        box.style.backgroundColor = "#f9f9f9";
-        existingContainer.appendChild(box);
-    }
-}
-
-
-        
-
-       // Form submission
-document.getElementById('dateCodeForm').addEventListener('submit', function(event) {
-    event.preventDefault();
-    const supplier = document.getElementById('manufacturer').value;
-    const dateCode = document.getElementById('dateCode').value.trim();
-    const language = document.getElementById('language').value;
-    if (!dateCode.match(/^[A-Za-z0-9*\-]+$/)) {
-        document.getElementById('result').innerText = translations[language].invalidCharacters;
-        return;
-    }
-    showDecodingBoxesNew(dateCode, supplier);
-    const result = decodeDate(supplier, dateCode);
-    document.getElementById('result').innerHTML = result;
+document.addEventListener('DOMContentLoaded', async () => {
+    loadDarkMode();
+    attachEvents();
+    await loadContactsFromJson();
+    renderAll();
 });
 
-        // Language handling
-        document.getElementById("language").addEventListener("change", function() {
-            const selectedLanguage = this.value;
-            localStorage.setItem("selectedLanguage", selectedLanguage);
-            updateLanguage(selectedLanguage);
-            const charCount = document.getElementById('dateCode').value.length;
-            document.getElementById('charCount').innerText = `${translations[selectedLanguage].charCount}${charCount}`;
-        });
+function orderedDepartments() {
+    const dynRight = dynamicDepartments.filter(d => d.column === 'right').map(d => d.name);
+    const dynLeft = dynamicDepartments.filter(d => d.column === 'left').map(d => d.name);
+    return [
+        ...DEPARTMENTS_RIGHT, ...dynRight,
+        SALES_MAIN, ...SALES_TEAMS,
+        ...dynLeft, ...OTHER_LEFT
+    ];
+}
+function getUniqueDepartments() {
+    const all = [...orderedDepartments(), ...contacts.map(c => c.department)];
+    return Array.from(new Set(all)).filter(Boolean);
+}
 
-        document.addEventListener("DOMContentLoaded", function() {
-            const languageSelect = document.getElementById("language");
-            const savedLanguage = localStorage.getItem("selectedLanguage") || "he";
-            languageSelect.value = savedLanguage;
-            updateLanguage(savedLanguage);
-            document.getElementById('charCount').innerText = `${translations[savedLanguage].charCount}0`;
-            const selectedOption = languageSelect.options[languageSelect.selectedIndex];
-            if (selectedOption) {
-                selectedOption.selected = true;
-            }
+/* ============ Data loading ============ */
+async function loadContactsFromJson() {
+    const loadingRow = document.getElementById('loadingRow');
+    if (loadingRow) loadingRow.style.display = 'block';
+    try {
+        const response = await fetch(API_URL, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json', 'x-collection-access-token': ACCESS_TOKEN }
         });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        const result = await response.json();
+        let data = {};
+        if (result.jsonData) {
+            try { data = JSON.parse(result.jsonData); } catch { data = result.data || {}; }
+        } else { data = result.data || {}; }
+        contacts = (data.contacts || []).map((c, idx) => ({ ...c, id: c.id || idx + 1 }));
+        document.getElementById('updateDate').textContent = 'עודכן: ' + (data.updateDate || new Date().toLocaleDateString('he-IL'));
+    } catch (e) {
+        document.getElementById('updateDate').textContent = 'שגיאת טעינה - משוך לרענון';
+    }
+    if (loadingRow) loadingRow.style.display = 'none';
+}
+async function saveContacts() {
+    const fullData = { contacts, updateDate: new Date().toLocaleDateString('he-IL') };
+    const res = await fetch(API_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-collection-access-token': ACCESS_TOKEN },
+        body: JSON.stringify({ jsonData: JSON.stringify(fullData) })
+    });
+    if (!res.ok) throw new Error('שמירה נכשלה: ' + res.status);
+    await res.json();
+    document.getElementById('updateDate').textContent = 'עודכן: ' + fullData.updateDate;
+}
+function saveFavorites() { localStorage.setItem('phonebook_favorites_v3', JSON.stringify(favorites)); }
+function saveDynamicDepartments() { localStorage.setItem('phonebook_dynamic_departments_v1', JSON.stringify(dynamicDepartments)); }
 
-        function updateLanguage(language) {
-            const elementsToTranslate = {
-                title: document.querySelector("h1"),
-                selectManufacturer: document.querySelector("label[for='manufacturer']"),
-                enterDateCode: document.querySelector("label[for='dateCode']"),
-                decodeButton: document.querySelector("button[type='submit']"),
-                scanBarcodeButton: document.getElementById("scanBarcode"),
-                charCount: document.getElementById("charCount"),
-                result: document.getElementById("result")
-            };
-            const currentTranslations = translations[language];
-            for (let key in elementsToTranslate) {
-                if (elementsToTranslate[key] && key !== 'charCount') {
-                    elementsToTranslate[key].innerText = currentTranslations[key] || "";
-                }
-            }
-            document.body.style.direction = language === "he" || language === "ar" ? "rtl" : "ltr";
-            document.body.setAttribute("lang", language);
+/* ============ Rendering ============ */
+function renderAll() {
+    renderChips();
+    renderList();
+}
+function renderChips() {
+    const wrap = document.getElementById('deptChips');
+    const depts = getUniqueDepartments();
+    wrap.innerHTML = '';
+    const allChip = document.createElement('div');
+    allChip.className = 'chip' + (activeDeptFilter === '' ? ' active' : '');
+    allChip.textContent = 'הכל';
+    allChip.onclick = () => { activeDeptFilter = ''; renderAll(); };
+    wrap.appendChild(allChip);
+    depts.forEach(d => {
+        const chip = document.createElement('div');
+        chip.className = 'chip' + (activeDeptFilter === d ? ' active' : '');
+        chip.textContent = d;
+        chip.onclick = () => { activeDeptFilter = d; openDepts.add(d); renderAll(); };
+        wrap.appendChild(chip);
+    });
+}
+function renderList() {
+    const content = document.getElementById('content');
+    const search = document.getElementById('searchInput').value.trim().toLowerCase();
+    content.innerHTML = '';
+
+    const grouped = {};
+    contacts.forEach(c => { (grouped[c.department] = grouped[c.department] || []).push(c); });
+
+    let depts = orderedDepartments();
+    getUniqueDepartments().forEach(d => { if (!depts.includes(d)) depts.push(d); });
+    if (activeDeptFilter) depts = depts.filter(d => d === activeDeptFilter);
+
+    let anyResult = false;
+
+    depts.forEach(deptName => {
+        let list = grouped[deptName] || [];
+        if (search) {
+            list = list.filter(c =>
+                (c.name || '').toLowerCase().includes(search) ||
+                (c.position || '').toLowerCase().includes(search) ||
+                (c.extension || '').toLowerCase().includes(search)
+            );
         }
+        if (list.length === 0 && (search || !DEPARTMENTS_RIGHT.concat(SALES_MAIN, SALES_TEAMS, OTHER_LEFT).includes(deptName))) {
+            if (!(grouped[deptName] && grouped[deptName].length)) return;
+        }
+        if (!grouped[deptName] || grouped[deptName].length === 0) return;
+        if (search && list.length === 0) return;
 
-        // Barcode scanning
-        document.getElementById('scanBarcode').addEventListener('click', function() {
-            document.getElementById('imageInput').click();
-        });
+        anyResult = true;
+        const isOpen = search ? true : openDepts.has(deptName);
+        const card = document.createElement('div');
+        card.className = 'dept-card' + (isOpen ? ' open' : '');
 
-        document.getElementById('imageInput').addEventListener('change', function(event) {
-            const language = document.getElementById('language').value;
-            document.getElementById('result').innerText = translations[language].processing;
-            const file = event.target.files[0];
-            if (!file) {
-                document.getElementById('result').innerText = translations[language].noFileSelected;
-                return;
+        const header = document.createElement('div');
+        header.className = 'dept-header';
+        header.innerHTML = `
+            <div class="dept-header-title">${deptName} <span class="dept-count">${list.length}</span></div>
+            <i class="fas fa-chevron-down dept-chevron"></i>`;
+        header.onclick = () => {
+            if (openDepts.has(deptName)) openDepts.delete(deptName); else openDepts.add(deptName);
+            renderList();
+        };
+        card.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'dept-body';
+        list.forEach(c => body.appendChild(buildContactItem(c)));
+        card.appendChild(body);
+
+        content.appendChild(card);
+    });
+
+    if (!anyResult) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        empty.innerHTML = '<i class="fas fa-search" style="font-size:1.6em;display:block;margin-bottom:10px;"></i>לא נמצאו תוצאות';
+        content.appendChild(empty);
+    }
+}
+function buildContactItem(contact) {
+    const isFav = favorites.includes(contact.id);
+    const item = document.createElement('div');
+    item.className = 'contact-item';
+    item.innerHTML = `
+        <div class="contact-top">
+            <div>
+                <div class="contact-name">${escapeHtml(contact.name || '')}</div>
+                <div class="contact-position">${escapeHtml(contact.position || '')}</div>
+            </div>
+        </div>
+        <div class="contact-meta">
+            ${contact.extension ? `<span><i class="fas fa-hashtag"></i> שלוחה ${escapeHtml(contact.extension)}</span>` : ''}
+            ${contact.phone ? `<span><i class="fas fa-phone"></i> ${escapeHtml(contact.phone)}</span>` : ''}
+        </div>
+        <div class="contact-actions">
+            ${contact.phone ? `<button class="callBtn" title="התקשר"><i class="fas fa-phone"></i></button>` : ''}
+            ${contact.phone ? `<button class="waBtn" title="וואטסאפ"><i class="fab fa-whatsapp"></i></button>` : ''}
+            ${contact.email ? `<button class="mailBtn" title="אימייל"><i class="fas fa-envelope"></i></button>` : ''}
+            <button class="vcardBtn" title="הוסף לאנשי קשר"><i class="fas fa-address-book"></i></button>
+            <button class="favBtn" title="מועדף"><i class="fas fa-star ${isFav ? 'active' : ''}"></i></button>
+            <button class="editBtn" title="ערוך"><i class="fas fa-edit"></i></button>
+        </div>`;
+    const callBtn = item.querySelector('.callBtn');
+    if (callBtn) callBtn.onclick = () => { window.location.href = 'tel:' + contact.phone; };
+    const waBtn = item.querySelector('.waBtn');
+    if (waBtn) waBtn.onclick = () => sendWhatsApp(contact.phone);
+    const mailBtn = item.querySelector('.mailBtn');
+    if (mailBtn) mailBtn.onclick = () => { window.location.href = 'mailto:' + contact.email; };
+    item.querySelector('.vcardBtn').onclick = () => addToContacts(contact);
+    item.querySelector('.favBtn').onclick = (e) => toggleFavorite(e.currentTarget, contact.id);
+    item.querySelector('.editBtn').onclick = () => openContactModal(contact.id);
+    return item;
+}
+function escapeHtml(str) {
+    return (str || '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ============ Actions ============ */
+function toggleFavorite(el, id) {
+    const icon = el.querySelector('i');
+    icon.classList.toggle('active');
+    favorites = favorites.includes(id) ? favorites.filter(f => f !== id) : [...favorites, id];
+    saveFavorites();
+}
+function sendWhatsApp(phone) {
+    if (!phone) return;
+    const clean = phone.replace(/[-\s]/g, '');
+    const intl = clean.startsWith('0') ? '972' + clean.slice(1) : clean;
+    window.open(`https://wa.me/${intl}`, '_blank');
+}
+function addToContacts(contact) {
+    const esc = (s) => (s || '').toString().replace(/\\/g,'\\\\').replace(/\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+    const lines = ['BEGIN:VCARD','VERSION:3.0', `FN:${esc(contact.name)}`, `N:;${esc(contact.name)};;;`, 'ORG:סידב'];
+    if (contact.position) lines.push(`TITLE:${esc(contact.position)}`);
+    if (contact.phone) lines.push(`TEL;TYPE=WORK,VOICE:${esc(contact.phone)}`);
+    if (contact.extension) lines.push(`NOTE:שלוחה ${esc(contact.extension)}`);
+    if (contact.email) lines.push(`EMAIL;TYPE=WORK:${esc(contact.email)}`);
+    lines.push('END:VCARD');
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    window.location.href = url;
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+/* ============ Password gate ============ */
+function askPassword() {
+    return new Promise(resolve => {
+        passwordResolve = resolve;
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordError').style.display = 'none';
+        document.getElementById('passwordModal').classList.add('show');
+        setTimeout(() => document.getElementById('passwordInput').focus(), 80);
+    });
+}
+function closePasswordModal(result) {
+    document.getElementById('passwordModal').classList.remove('show');
+    if (passwordResolve) { passwordResolve(result); passwordResolve = null; }
+}
+function checkPassword() {
+    const val = document.getElementById('passwordInput').value;
+    if (val === EDIT_PASSWORD) {
+        closePasswordModal(true);
+    } else {
+        document.getElementById('passwordError').style.display = 'block';
+        setTimeout(() => { document.getElementById('passwordError').style.display = 'none'; }, 1500);
+    }
+}
+
+/* ============ Contact form ============ */
+function populatePositionDropdown(selected = '') {
+    const select = document.getElementById('positionSelect');
+    select.innerHTML = '';
+    POSITIONS_LIST.forEach(p => select.appendChild(new Option(p, p)));
+    select.appendChild(new Option('... תפקיד חדש', '--new--'));
+    const newInput = document.getElementById('newPosition');
+    if (selected && POSITIONS_LIST.includes(selected)) { select.value = selected; newInput.style.display = 'none'; }
+    else if (!selected) { select.selectedIndex = 0; newInput.style.display = 'none'; }
+    else { select.value = '--new--'; newInput.value = selected; newInput.style.display = 'block'; }
+}
+function populateExtensionDropdown(selected = '') {
+    const select = document.getElementById('extensionSelect');
+    select.innerHTML = '';
+    EXTENSIONS_LIST.forEach(x => select.appendChild(new Option(x, x)));
+    select.appendChild(new Option('... שלוחה חדשה', '--new--'));
+    const newInput = document.getElementById('newExtension');
+    if (selected && EXTENSIONS_LIST.includes(selected)) { select.value = selected; newInput.style.display = 'none'; }
+    else if (!selected) { select.selectedIndex = 0; newInput.style.display = 'none'; }
+    else { select.value = '--new--'; newInput.value = selected; newInput.style.display = 'block'; }
+}
+function populateDepartmentDropdown(selected = '') {
+    const select = document.getElementById('department');
+    const depts = getUniqueDepartments();
+    select.innerHTML = '';
+    depts.forEach(d => select.appendChild(new Option(d, d)));
+    select.appendChild(new Option('... מחלקה חדשה', '--new--'));
+    const newInput = document.getElementById('newDepartment');
+    const colBlock = document.getElementById('chooseColumnBlock');
+    if (selected && depts.includes(selected)) { select.value = selected; newInput.style.display = 'none'; colBlock.style.display = 'none'; }
+    else if (!selected) { select.selectedIndex = 0; newInput.style.display = 'none'; colBlock.style.display = 'none'; }
+    else { select.value = '--new--'; newInput.value = selected; newInput.style.display = 'block'; colBlock.style.display = 'block'; }
+}
+function openContactModal(contactId = null) {
+    const form = document.getElementById('contactForm');
+    form.reset();
+    document.getElementById('contactId').value = '';
+    document.getElementById('newDepartment').style.display = 'none';
+    document.getElementById('newPosition').style.display = 'none';
+    document.getElementById('newExtension').style.display = 'none';
+    document.getElementById('chooseColumnBlock').style.display = 'none';
+    const deleteBtn = document.getElementById('deleteContactBtn');
+    if (contactId) {
+        const contact = contacts.find(c => c.id == contactId);
+        if (contact) {
+            document.getElementById('modalTitle').textContent = 'ערוך איש קשר';
+            deleteBtn.style.display = 'block';
+            document.getElementById('contactId').value = contact.id;
+            document.getElementById('name').value = contact.name || '';
+            populatePositionDropdown(contact.position || '');
+            populateExtensionDropdown(contact.extension || '');
+            document.getElementById('phone').value = contact.phone || '';
+            document.getElementById('email').value = contact.email || '';
+            populateDepartmentDropdown(contact.department || '');
+        }
+    } else {
+        document.getElementById('modalTitle').textContent = 'הוסף איש קשר חדש';
+        deleteBtn.style.display = 'none';
+        populatePositionDropdown();
+        populateExtensionDropdown();
+        populateDepartmentDropdown();
+    }
+    document.getElementById('contactModal').classList.add('show');
+}
+function closeContactModal() { document.getElementById('contactModal').classList.remove('show'); }
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    const ok = await askPassword();
+    if (!ok) return;
+    const id = document.getElementById('contactId').value;
+    try {
+        let position = document.getElementById('positionSelect').value;
+        if (position === '--new--') {
+            position = document.getElementById('newPosition').value.trim();
+            if (!position) return alert('יש להזין תפקיד חדש.');
+        }
+        let extension = document.getElementById('extensionSelect').value;
+        if (extension === '--new--') {
+            extension = document.getElementById('newExtension').value.trim();
+            if (!extension) return alert('יש להזין שלוחה חדשה.');
+        }
+        let department = document.getElementById('department').value;
+        if (department === '--new--') {
+            department = document.getElementById('newDepartment').value.trim();
+            if (!department) return alert('יש להזין מחלקה חדשה.');
+            const col = document.querySelector('input[name="newDepartmentColumn"]:checked').value;
+            if (!dynamicDepartments.some(d => d.name === department)) {
+                dynamicDepartments.push({ name: department, column: col });
+                saveDynamicDepartments();
             }
-            if (!file.type.startsWith('image/')) {
-                document.getElementById('result').innerText = translations[language].invalidFileType;
-                return;
-            }
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    Quagga.decodeSingle({
-                        src: img.src,
-                        numOfWorkers: 0,
-                        inputStream: {
-                            size: 800
-                        },
-                        decoder: {
-                            readers: ["code_128_reader", "code_39_reader"]
-                        },
-                    }, function(result) {
-                        if (result && result.codeResult) {
-                            const barcode = result.codeResult.code;
-                            document.getElementById('dateCode').value = barcode;
-                            document.getElementById('result').innerText = `${translations[language].barcodeDetected}: ${barcode}`;
-                            const charCount = barcode.length;
-                            document.getElementById('charCount').innerText = `${translations[language].charCount}${charCount}`;
-                        } else {
-                            document.getElementById('result').innerText = translations[language].barcodeNotDetected;
-                        }
-                    });
-                };
-                img.onerror = function() {
-                    document.getElementById('result').innerText = translations[language].imageLoadError;
-                };
-                img.src = e.target.result;
-            };
-            reader.onerror = function() {
-                document.getElementById('result').innerText = translations[language].fileReadError;
-            };
-            reader.readAsDataURL(file);
-        });
-    </script>
+        }
+        const name = document.getElementById('name').value.trim();
+        if (!name) return alert('יש להזין שם איש קשר.');
+        const data = {
+            name, position, department, extension,
+            phone: document.getElementById('phone').value.trim(),
+            email: document.getElementById('email').value.trim()
+        };
+        if (id) {
+            const idx = contacts.findIndex(c => c.id == id);
+            if (idx !== -1) contacts[idx] = { ...contacts[idx], ...data };
+        } else {
+            data.id = Date.now();
+            contacts.push(data);
+        }
+        await saveContacts();
+        openDepts.add(department);
+        renderAll();
+        closeContactModal();
+    } catch (err) {
+        await loadContactsFromJson();
+        renderAll();
+        alert('שגיאה בשמירה: ' + err.message);
+    }
+}
+async function deleteContact() {
+    const ok = await askPassword();
+    if (!ok) return;
+    const id = document.getElementById('contactId').value;
+    if (!id) return;
+    if (!confirm('האם למחוק את איש הקשר?')) return;
+    try {
+        contacts = contacts.filter(c => c.id != id);
+        favorites = favorites.filter(f => f != id);
+        await saveContacts();
+        saveFavorites();
+        renderAll();
+        closeContactModal();
+    } catch (err) {
+        await loadContactsFromJson();
+        renderAll();
+        alert('שגיאה במחיקה: ' + err.message);
+    }
+}
+
+/* ============ Dark mode ============ */
+function loadDarkMode() {
+    if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark');
+        document.getElementById('darkToggle').innerHTML = '<i class="fas fa-sun"></i>';
+    }
+}
+function toggleDarkMode() {
+    document.body.classList.toggle('dark');
+    const on = document.body.classList.contains('dark');
+    localStorage.setItem('darkMode', on ? 'true' : 'false');
+    document.getElementById('darkToggle').innerHTML = on ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+}
+
+/* ============ Events ============ */
+function attachEvents() {
+    document.getElementById('searchInput').addEventListener('input', renderList);
+    document.getElementById('darkToggle').addEventListener('click', toggleDarkMode);
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+        const icon = document.querySelector('#refreshBtn i');
+        icon.classList.add('fa-spin');
+        await loadContactsFromJson();
+        renderAll();
+        icon.classList.remove('fa-spin');
+    });
+    document.getElementById('addFab').addEventListener('click', () => openContactModal());
+    document.getElementById('contactClose').addEventListener('click', closeContactModal);
+    document.getElementById('contactForm').addEventListener('submit', handleFormSubmit);
+    document.getElementById('deleteContactBtn').addEventListener('click', deleteContact);
+    document.getElementById('department').addEventListener('change', () => {
+        const v = document.getElementById('department').value;
+        document.getElementById('newDepartment').style.display = v === '--new--' ? 'block' : 'none';
+        document.getElementById('chooseColumnBlock').style.display = v === '--new--' ? 'block' : 'none';
+    });
+    document.getElementById('positionSelect').addEventListener('change', () => {
+        document.getElementById('newPosition').style.display =
+            document.getElementById('positionSelect').value === '--new--' ? 'block' : 'none';
+    });
+    document.getElementById('extensionSelect').addEventListener('change', () => {
+        document.getElementById('newExtension').style.display =
+            document.getElementById('extensionSelect').value === '--new--' ? 'block' : 'none';
+    });
+    document.getElementById('pwClose').addEventListener('click', () => closePasswordModal(false));
+    document.getElementById('pwConfirm').addEventListener('click', checkPassword);
+    document.getElementById('passwordInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') checkPassword(); });
+    [['passwordModal', () => closePasswordModal(false)], ['contactModal', closeContactModal]].forEach(([id, fn]) => {
+        document.getElementById(id).addEventListener('click', (e) => { if (e.target.id === id) fn(); });
+    });
+    document.addEventListener('backbutton', () => {
+        if (document.getElementById('contactModal').classList.contains('show')) closeContactModal();
+        else if (document.getElementById('passwordModal').classList.contains('show')) closePasswordModal(false);
+    });
+}
+</script>
 </body>
 </html>

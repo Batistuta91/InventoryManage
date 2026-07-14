@@ -1,20 +1,20 @@
 {
-  "name": "datecodeapp",
+  "name": "cidev-phonebook",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "ספר טלפונים סידב - אפליקציית אנדרואיד",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "sync": "npx cap sync android",
+    "open:android": "npx cap open android",
+    "icons": "npx @capacitor/assets generate --android --iconBackgroundColor \"#FFFFFF\" --iconBackgroundColorDark \"#FFFFFF\""
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "@capacitor/android": "^6.2.1",
-    "@capacitor/cli": "^6.2.1",
-    "@capacitor/core": "^6.2.1"
+    "@capacitor/android": "^6.1.0",
+    "@capacitor/core": "^6.1.0",
+    "@capacitor/app": "^6.0.0"
   },
   "devDependencies": {
-    "typescript": "^7.0.2"
+    "@capacitor/cli": "^6.1.0",
+    "@capacitor/assets": "^3.0.5"
   }
 }

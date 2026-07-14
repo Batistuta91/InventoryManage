@@ -1,5 +1,11 @@
 {
-  "appId": "com.cidev.datecodedecoder",
-  "appName": "מפענח תאריך ייצור",
-  "webDir": "www"
+  "appId": "com.cidev.phonebook",
+  "appName": "ספר טלפונים סידב",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": false
+  }
 }

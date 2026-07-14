@@ -1,30 +1,29 @@
 workflows:
-  android-debug-apk:
-    name: Date Code Decoder - Android APK
+  android-phonebook:
+    name: CIDEV Phonebook - Android
     max_build_duration: 30
-    instance_type: mac_mini_m2
+    instance_type: linux_x2
     environment:
-      node: 20
-      vars:
-        PACKAGE_NAME: "com.cidev.datecodedecoder"
+      node: latest
+      groups: []
     scripts:
       - name: Install npm dependencies
+        script: npm install
+      - name: Add Android platform (first run only)
         script: |
-          npm install
-      - name: Sync Capacitor (copy web assets into android project)
-        script: |
-          npx cap sync android
-      - name: Build Android debug APK
+          if [ ! -d "android" ]; then
+            npx cap add android
+          fi
+      - name: Generate app icons from assets/
+        script: npm run icons
+      - name: Sync web assets into Android project
+        script: npx cap sync android
+      - name: Build debug APK
         script: |
           cd android
-          chmod +x ./gradlew
           ./gradlew assembleDebug
     artifacts:
-      - android/app/build/outputs/apk/debug/*.apk
+      - android/app/build/outputs/**/*.apk
     publishing:
       email:
-        recipients:
-          - your-email@example.com
-        notify:
-          success: true
-          failure: true
+        recipients: []
