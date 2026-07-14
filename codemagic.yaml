@@ -2,7 +2,6 @@ workflows:
   android-phonebook:
     name: CIDEV Phonebook - Android
     max_build_duration: 30
-    instance_type: linux_x2
     environment:
       node: latest
       groups: []
